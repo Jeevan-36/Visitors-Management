@@ -1,0 +1,13 @@
+import {Router} from "express";
+import { loginResident ,approveVisitor,denyVisitor,getPendingApprovals,getResidentRecentActivity,getResidentVisitorsCount} from "../controllers/resident.controller.js";
+import {verifyResident} from "../middlewares/resident.middleware.js";
+import { getVisitsOnFilter } from "../controllers/user.controller.js";
+const router=Router();
+router.route("/login").post(loginResident);
+router.route("/pending-approvals").post(verifyResident,getPendingApprovals);
+router.route("/approve-visit").put(verifyResident,approveVisitor);
+router.route("/deny-visit").put(verifyResident,denyVisitor);
+router.route("/approval-history").post(verifyResident,getVisitsOnFilter);
+router.route("/visitors-summary").post(verifyResident,getResidentVisitorsCount);
+router.route("/recent-activity").post(verifyResident,getResidentRecentActivity);
+export default router;

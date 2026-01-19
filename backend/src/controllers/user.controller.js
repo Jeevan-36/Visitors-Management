@@ -3,17 +3,41 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { Visitor } from "../models/visitors.model.js";
 import { Visit } from "../models/visit.model.js";
+import { Flat } from "../models/flat.model.js";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
+ const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL ,
+    pass: process.env.EMAIL_PASSWORD
+  }
+    });
+
+
 export const logoutUser=asyncHandler(async (req,res) => {
     console.log("Logging out user",req.user);
-    const userId=req.user._id;
-    const user=await User.findByIdAndUpdate(userId,
-        { $set: { refreshToken: undefined } },
-    );
-    res.status(200)
-    .
-    clearCookie("accessToken",options)
-    .clearCookie("refreshToken",options)
-    .json({ message: "User logged out successfully" });
+   try {
+     const userId=req.user._id;
+     const user=await User.findByIdAndUpdate(userId,
+         { $set: { refreshToken: undefined } },
+     );
+     const options={
+    httpOnly:true,
+    secure:false,
+      sameSite: "lax"    
+   }
+   
+     res.status(200)
+     .
+     clearCookie("accessToken",options)
+     .clearCookie("refreshToken",options)
+     .json({ message: "User logged out successfully" });
+   } catch (error) {
+    console.log(" err",error);
+      res.status(500).json({ message: "Error logging out user" });  
+   }
 })
 
 export const getVisitorsSummary = asyncHandler(async (req, res) => {
@@ -62,6 +86,7 @@ export const getRecentVisitorActivity = asyncHandler(async (req, res) => {
     
         res.status(200).json(formattedActivity);
     } catch (error) {
+      console.log("error thre",error);
         res.status(500).json({ message: "Error fetching recent visitor activity" });
     }
     }
@@ -140,3 +165,118 @@ export const getVisitsOnFilter = asyncHandler(async (req, res) => {
   }
 });
 
+
+export const sendEmailOtp=asyncHandler(async(req,res)=>{
+  try {
+    const { email } = req.body;
+    console.log("gotch",email);
+    if (!email) {
+      throw new ApiError(400, "Email is required to send OTP.");
+    }
+   
+    const otp=
+  Math.floor(100000 + Math.random() * 900000).toString();
+   console.log("otp",otp);
+    req.session.emailOtp = otp;
+    req.session.emailOtpExpiry = Date.now() + 5 * 60 * 1000;
+    req.session.emailVerified = false;
+
+    await transporter.sendMail({
+      from: `"Gate Security" <${process.env.EMAIL}>`,
+      to: email,
+      subject: "Visitor OTP Verification",
+      html: `
+        <h2>OTP Verification</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>Valid for 5 minutes</p>
+      `
+    });
+    
+   
+
+    res.json({ success: true });
+
+  } catch (error) {
+     console.log(error);
+    res.status(error.statuscode || 500).json({ message: error.message || "Error while sending OTP" });
+  }
+
+});
+ 
+export const verifyEmailOtp=asyncHandler(async(req,res)=>{
+  try {
+    const { otp } = req.body;
+    if (!otp) {
+      throw new ApiError(400, "OTP is required for verification.");
+    }
+    if (req.session.emailOtp !== otp) {
+      throw new ApiError(400, "Invalid OTP. Please try again.");
+    }
+    if (Date.now() > req.session.emailOtpExpiry) {
+      throw new ApiError(400, "OTP has expired. Please request a new one.");
+    }
+    req.session.emailVerified = true;
+    res.json({ success: true, message: "Email verified successfully." });
+  } catch (error) {
+    res.status(error.statuscode || 500).json({ message: error.message || "Error while verifying OTP" });
+  }
+});
+
+export const getFlatNumbers = asyncHandler(async (req, res) => {
+  try {
+    console.log("inbcd");
+    const flats =await Flat.find().sort({ flatNo: 1 }).select('flatNo -_id');
+    const flatNumbers = flats.map(flat => flat.flatNo);
+    res.status(200).json({ flatNumbers });
+  }
+    catch (error) {
+    res.status(500).json({ message: "Error fetching flat numbers" });
+  }
+}
+);
+
+export const updateProfile=asyncHandler(async(req,res)=>{
+  try {
+    console.log(req.body);
+    const {name,phoneNo,email}=req.body;
+    const userId=req.user._id;
+    const user=await User.findById(userId);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    const updatedFields={};
+    if (name) updatedFields.name=name;
+    if (phoneNo) updatedFields.phoneNo=phoneNo;
+    if (email) updatedFields.email=email;
+    await User.findByIdAndUpdate(userId,
+      { $set: updatedFields } 
+  );
+    res.status(200).json({message:"Profile updated successfully"});
+  } catch (error) {
+    res.status(error.statuscode || 500).json({ message: error.message || "Error while updating profile" });
+  }
+});
+
+export const updatePassword=asyncHandler(async(req,res)=>{
+  try {
+    const { currentPassword,newPassword }=req.body;
+    const userId=req.user._id;
+    const user=await User.findById(userId).select('+password');
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    if(newPassword.length<8){
+      throw new ApiError(409, "New password must be at least 8 characters long");
+    }
+    const isMatch=await user.isPasswordCorrect(currentPassword);
+    if (!isMatch) {
+      throw new ApiError(400, "Current password is incorrect");
+    } 
+    user.password=newPassword;
+    await user.save();
+    res.status(200).json({message:"Password updated successfully"});
+  } catch (error) {
+    res.status(error.statuscode || 500).json({ message: error.message || "Error while updating password" });
+  } 
+});

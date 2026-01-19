@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { User } from '../models/user.models.js'; // Adjust path if needed
 
 dotenv.config();
-
+// for initial manger account creation
 const seedManager = async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URL}/visitors`);

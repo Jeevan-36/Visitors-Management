@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
+      minLenghth: 8,
       required: true,
       select: false,
     },
@@ -32,7 +33,6 @@ const userSchema = new mongoose.Schema(
     },
     flatNo: {
       type: String,
-      unique: true,
       sparse: true,
       required: function() { return this.role === 'resident'; }
     },
@@ -45,7 +45,10 @@ const userSchema = new mongoose.Schema(
     refreshToken: {
             type: String
         },
-        //add status
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

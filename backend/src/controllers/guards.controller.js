@@ -6,7 +6,6 @@ import { Visit } from "../models/visit.model.js";
 import { io } from "../index.js";
 const loginGuard = asyncHandler(async (req, res) => {
   try {
-    console.log(req.body);
     const { phoneNo, password, role } = req.body;
     if (!phoneNo || !password || !role) {
       throw new ApiError(400, "Please provide all fields");
@@ -39,28 +38,58 @@ const loginGuard = asyncHandler(async (req, res) => {
   }
 });
 
+ const checkVisitor = asyncHandler(async (req, res) => {
+ try {
+   const { email } = req.body; 
+   if (!email) {
+     throw new ApiError(400, "Email is required to check visitor status.");
+   }
+   console.log("e",email);
+   const visitor = await Visitor.findOne({ email });
+ 
+   if (visitor) {
+     return res.status(200).json({
+       exists: true,
+       message: "Existing visitor found."
+     });
+   }
+ 
+   return res.status(200).json({
+     exists: false,
+     message: "New visitor. OTP verification required."
+   });
+ } catch (error) {
+     res.status(error.statuscode||500).json({
+      message:error.message
+    })
+  }
+});
+
 const markEntry = asyncHandler(async (req, res) => {
   try {
-    const { name, phoneNo, flatNo,purpose } = req.body;
   
-    if (!name || !phoneNo || !flatNo || !purpose) {
-      throw new ApiError(400, "Name, phone number, and flat number  and purpose of visit are required.");
+    const { name, phoneNo, flatNo,purpose,email } = req.body;
+    console.log(req.body);
+    if (!name || !phoneNo || !flatNo || !purpose || !email) {
+      throw new ApiError(400, "Name, phone number,email and flat number  and purpose of visit are required.");
     }
   
     const resident = await User.findOne({ flatNo: flatNo, role: 'resident' });
-  
+  console.log("res",resident);
     if (!resident) {
       throw new ApiError(404, "Invalid flat number: No resident found for this flat.");
     }
-  
-    let visitor = await Visitor.findOne({ phoneNo });
-   // we should verify for OTP
+
+    let visitor = await Visitor.findOne({  email });
     if (!visitor) {
+      //return first register
       visitor = await Visitor.create({
         name,
         phoneNo,
+        email
       });
     }
+  console.log("started");
     const existingActiveVisit = await Visit.findOne({ 
     visitor: visitor._id, 
     status: 'Active' 
@@ -76,7 +105,7 @@ const markEntry = asyncHandler(async (req, res) => {
       purpose: purpose,
       entryTime: new Date(),
     });
-  
+    console.log(newVisit);
     if (!newVisit) {
       throw new ApiError(500, "Failed to create a new visit record.");
     }
@@ -101,7 +130,7 @@ const markExit=asyncHandler(async(req,res)=>{
     console.log("Marking exit for phone number:", phoneNo);
     const visitor=await Visitor.findOne({phoneNo});
     if(!visitor){
-      throw new ApiError(404,"Invalid phone number: No visitor found for this phone.");
+      throw new ApiError(404,"Invalid phone number: No visitor found for this phoneNo.");
       }
       const existingActiveVisit=await Visit.findOne({visitor:visitor._id,status:'Approved'});
       if(!existingActiveVisit){
@@ -158,4 +187,4 @@ const getTodaysActivity=asyncHandler(async(req,res)=>{
     }
     }
 );
-export { loginGuard,markEntry,markExit,getTodaysActivity };
+export { loginGuard,markEntry,markExit,getTodaysActivity,checkVisitor };

@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom"; // ✅ Import Link
+import { Link } from "react-router-dom";
 import LogoutModal from "./LogoutModal";
+import { useUser } from "../context/UserContextProvider";
 import { Outlet } from "react-router-dom";
 const ManagerDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+  const { user } = useUser();
+   const {  name } = user;
   // Dummy data - In a real app, this would come from your backend API
   const dummyFlats = [
     101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
@@ -34,12 +37,7 @@ const ManagerDashboard = () => {
             >
               Reports
             </Link>
-            <Link
-              to="visitors"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
-            >
-              Visitors
-            </Link>
+
             <Link
               to="guards"
               className="flex items-center py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
@@ -63,7 +61,7 @@ const ManagerDashboard = () => {
         <div className="border-t border-gray-700 pt-6">
           <div className="flex items-center space-x-3 text-gray-200">
             <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0"></div>
-            <div>Manager Name</div>
+            <div>{name}</div>
           </div>
           <button
             onClick={()=>{

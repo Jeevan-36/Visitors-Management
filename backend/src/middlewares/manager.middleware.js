@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 
 export const verifyManager = async (req, res, next) => {
   try {
-    // console.log("object of cook",req.cookies);
     const token=req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","");
     if (!token) {
      throw new ApiError(401,"Unauthorized access");

@@ -31,6 +31,7 @@ connectDB()
   .then(() => {
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server with Socket.IO running on port ${PORT}`);
+
     });
   })
   .catch((err) => {

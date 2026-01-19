@@ -1,208 +1,243 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-// Modal for editing a guard
-const GuardModal = ({ isOpen, onClose, onSave, guard }) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
+/* =========================
+   Add Guard Modal
+========================= */
+const AddGuardModal = ({ isOpen, onClose, onSave }) => {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (isOpen) {
-      setName(guard?.name || '');
-      setPhone(guard?.phone || '');
-      setEmployeeId(guard?.employeeId || '');
+      setName(""); setPhone(""); setEmail(""); setPassword("");
+      setError("");
     }
-  }, [guard, isOpen]);
+  }, [isOpen]);
 
-  const handleSave = () => {
-    onSave({ id: guard?.id, name, phone, employeeId });
-    onClose();
+  const isDisabled = !name || !phone || !password || !email;
+
+  const handleAddNewGuard = async () => {
+    setError("");
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/manager/register",
+        { name, phoneNo: phone, email, password, role: "guard" },
+        { withCredentials: true }
+      );
+
+      if (response.status < 400) {
+        onSave(response.data?.user);
+        onClose();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to add guard");
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-      <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md">
-        <h2 className="text-xl font-semibold text-white mb-6">Edit Guard</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md shadow-2xl border border-gray-700">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Add New Guard</h2>
+          <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-1 rounded">ID Auto-generated</span>
+        </div>
+        {error && <div className="bg-red-500/10 border border-red-500 text-red-500 px-3 py-2 rounded mb-4 text-sm text-center">{error}</div>}
         <div className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
-            <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-gray-700 text-white rounded-md border-gray-600 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter full name"/>
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
-            <input type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-700 text-white rounded-md border-gray-600 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="98xxxxxxxx"/>
-          </div>
-          <div>
-            <label htmlFor="employeeId" className="block text-sm font-medium text-gray-300 mb-1">Employee ID</label>
-            <input type="text" id="employeeId" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full bg-gray-700 text-white rounded-md border-gray-600 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., GUARD-007"/>
-          </div>
+          <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500" placeholder="Create Password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
-        <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-          <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-            Save Changes
-          </button>
+        <div className="flex justify-end space-x-4 mt-8">
+          <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition">Cancel</button>
+          <button disabled={isDisabled} onClick={handleAddNewGuard} className={`px-4 py-2 rounded font-semibold transition ${isDisabled ? "bg-gray-600 cursor-not-allowed text-gray-400" : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/20"}`}>Register Guard</button>
         </div>
       </div>
     </div>
   );
 };
 
-// Modal for confirming removal
-const RemoveConfirmModal = ({ isOpen, onClose, onConfirm, guardName }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-      <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md text-center">
-        <h2 className="text-xl font-semibold text-white mb-4">Are you sure?</h2>
-        <p className="text-gray-400 mb-8">Do you really want to remove the guard <span className="font-bold text-white">{guardName}</span>? This action cannot be undone.</p>
-        <div className="flex justify-center space-x-4">
-          <button onClick={onClose} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">Cancel</button>
-          <button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Confirm Remove</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
+/* =========================
+   Manage Guards
+========================= */
 const ManageGuards = () => {
-  const [allGuards, setAllGuards] = useState([
-    { id: 1, name: 'Anand Singh', phone: '9512345678', employeeId: 'GUARD-001' },
-    { id: 2, name: 'Rajesh Kumar', phone: '9412345678', employeeId: 'GUARD-002' },
-    { id: 3, name: 'Suresh Patil', phone: '9312345678', employeeId: 'GUARD-003' },
-  ]);
+  const [allGuards, setAllGuards] = useState([]);
+  const [displayedGuards, setDisplayedGuards] = useState([]);
+  const [guardIdList, setGuardIdList] = useState([]);
 
-  const [displayedGuards, setDisplayedGuards] = useState(allGuards);
-  const [filterEmployeeId, setFilterEmployeeId] = useState('');
-  const [phoneFilter, setPhoneFilter] = useState('');
-  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  // Filter States
+  const [filterId, setFilterId] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(""); // "" (All), "true", "false"
+
+  const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
   const [selectedGuard, setSelectedGuard] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchGuards = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/manager/guards-details", { withCredentials: true });
+        const guards = response.data?.guards || [];
+        setAllGuards(guards);
+        setDisplayedGuards(guards);
+        const ids = guards.map(g => g.employeeId).filter(Boolean);
+        setGuardIdList([...new Set(ids)]);
+       
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to fetch guards");
+      }
+    };
+    fetchGuards();
+  }, []);
 
   const handleSearch = () => {
-    let filtered = allGuards
-      .filter(guard => filterEmployeeId ? guard.employeeId === filterEmployeeId : true)
-      .filter(guard => phoneFilter ? guard.phone.includes(phoneFilter) : true);
+    const filtered = allGuards
+      .filter((g) => (filterId ? g.employeeId === filterId : true))
+      .filter((g) => (phoneFilter ? g.phoneNo?.includes(phoneFilter) : true))
+      .filter((g) => {
+        if (statusFilter === "") return true;
+        const isActive = statusFilter === "true";
+        return g.isActive === isActive;
+      });
     setDisplayedGuards(filtered);
   };
 
-  const handleReset = () => {
-    setFilterEmployeeId('');
-    setPhoneFilter('');
-    setDisplayedGuards(allGuards);
-  };
-  
-  const uniqueEmployeeIds = [...new Set(allGuards.map(g => g.employeeId))].sort();
-
-  const handleOpenEditModal = (guard) => {
-    setSelectedGuard(guard);
-    setEditModalOpen(true);
+  const handleSaveGuard = (newGuard) => {
+    const updated = [...allGuards, newGuard];
+    setAllGuards(updated);
+    setDisplayedGuards(updated);
+    if (newGuard.employeeId && !guardIdList.includes(newGuard.employeeId)) {
+      setGuardIdList(prev => [...prev, newGuard.employeeId].sort());
+    }
   };
 
-  const handleOpenRemoveModal = (guard) => {
-    setSelectedGuard(guard);
-    setRemoveModalOpen(true);
-  };
-
-  const handleSaveGuard = (guardData) => {
-    const updatedList = allGuards.map(g => g.id === guardData.id ? { ...g, ...guardData } : g);
-    setAllGuards(updatedList);
-    setDisplayedGuards(updatedList);
-    console.log("Editing guard:", guardData);
-  };
-
-  const handleRemoveGuard = () => {
-    const updatedList = allGuards.filter(g => g.id !== selectedGuard.id);
-    setAllGuards(updatedList);
-    setDisplayedGuards(updatedList);
-    setRemoveModalOpen(false);
-    setSelectedGuard(null);
-    console.log("Removing guard:", selectedGuard.id);
+  const handleRemoveGuard = async () => {
+    try {
+      await axios.put(
+        "http://localhost:8000/manager/deactivate-guard",
+        { employeeId: selectedGuard.employeeId },
+        { withCredentials: true }
+      );
+      
+      // Update local state to reflect deactivation instead of just filtering out
+      const updated = allGuards.map(g => 
+        g._id === selectedGuard._id ? { ...g, isActive: false } : g
+      );
+      setAllGuards(updated);
+      setDisplayedGuards(updated);
+      setRemoveModalOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to remove guard");
+    }
   };
 
   return (
-    <>
-      <div className="bg-gray-900 text-gray-200 min-h-screen font-sans p-6">
-        <h1 className="text-3xl font-bold text-white mb-6">Manage Guards</h1>
-        
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-4">
-            <select
-              id="employeeIdFilter"
-              value={filterEmployeeId}
-              onChange={(e) => setFilterEmployeeId(e.target.value)}
-              className="bg-gray-700 text-white rounded-md border-gray-600 px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Filter by ID (All)</option>
-              {uniqueEmployeeIds.map(id => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-            
-            <input
-              type="tel"
-              value={phoneFilter}
-              onChange={(e) => setPhoneFilter(e.target.value)}
-              className="w-64 bg-gray-700 text-white rounded-md border-gray-600 px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Search by Phone..."
-            />
-          </div>
-          
-          <div className="flex items-center space-x-3">
-           
-            <button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md h-10">
-              Search
-            </button>
-          </div>
+    <div className="bg-gray-900 text-gray-200 min-h-screen p-6 font-sans">
+      <h1 className="text-3xl font-bold text-white mb-6">Manage Guards</h1>
+
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex space-x-4">
+          {/* Employee ID Filter */}
+          <select
+            value={filterId}
+            onChange={(e) => setFilterId(e.target.value)}
+            className="bg-gray-700 text-white rounded px-3 py-2 border border-gray-600 outline-none focus:border-blue-500"
+          >
+            <option value="">All Guard IDs</option>
+            {guardIdList.map((id) => (
+              <option key={id} value={id}>{id}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-gray-700 text-white rounded px-3 py-2 border border-gray-600 outline-none focus:border-blue-500"
+          >
+            <option value="">All Status's</option>
+            <option value="true">Active Only</option>
+            <option value="false">Inactive Only</option>
+          </select>
+
+          <input
+            value={phoneFilter}
+            onChange={(e) => setPhoneFilter(e.target.value)}
+            className="bg-gray-700 text-white rounded px-3 py-2 border border-gray-600 outline-none focus:border-blue-500 w-64"
+            placeholder="Search Phone..."
+          />
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left text-gray-400">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-900">
-                <tr>
-                  <th className="py-3 px-6">Employee ID</th>
-                  <th className="py-3 px-6">Guard Name</th>
-                  <th className="py-3 px-6">Phone Number</th>
-                  <th className="py-3 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedGuards.map((guard) => (
-                  <tr key={guard.id} className="border-b border-gray-700 hover:bg-gray-700">
-                    <td className="py-4 px-6 font-medium text-white">{guard.employeeId}</td>
-                    <td className="py-4 px-6">{guard.name}</td>
-                    <td className="py-4 px-6">{guard.phone}</td>
-                    <td className="py-4 px-6 text-right space-x-4">
-                      <button onClick={() => handleOpenEditModal(guard)} className="font-medium text-blue-500 hover:underline">Edit</button>
-                      <button onClick={() => handleOpenRemoveModal(guard)} className="font-medium text-red-500 hover:underline">Remove</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {displayedGuards.length === 0 && <p className="text-center py-4 text-gray-500">No guards found for this filter.</p>}
-          </div>
+        <div className="flex space-x-3">
+          <button onClick={() => setAddModalOpen(true)} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold transition shadow-md">+ Add Guard</button>
+          <button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold transition shadow-md">Search</button>
         </div>
       </div>
 
-      <GuardModal 
-        isOpen={isEditModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        onSave={handleSaveGuard}
-        guard={selectedGuard}
-      />
-      
-      <RemoveConfirmModal 
-        isOpen={isRemoveModalOpen}
-        onClose={() => setRemoveModalOpen(false)}
-        onConfirm={handleRemoveGuard}
-        guardName={selectedGuard?.name}
-      />
-    </>
+      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 shadow-2xl">
+        <table className="min-w-full text-left text-gray-400">
+          <thead className="bg-gray-900 text-xs uppercase tracking-widest text-gray-500 border-b border-gray-700">
+            <tr>
+              <th className="py-3 px-6">ID</th>
+              <th className="py-3 px-6">Name</th>
+              <th className="py-3 px-6">Phone</th>
+              <th className="py-3 px-6">Status</th>
+              <th className="py-3 px-6 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayedGuards.map((guard) => (
+              <tr key={guard._id} className="border-b border-gray-700 hover:bg-gray-700/40 transition-colors">
+                <td className="py-4 px-6 text-blue-400 font-mono text-sm">{guard.employeeId}</td>
+                <td className="py-4 px-6 text-white font-medium">{guard.name}</td>
+                <td className="py-4 px-6">{guard.phoneNo}</td>
+                <td className="py-4 px-6">
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${guard.isActive ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}>
+                    {guard.isActive ? "ACTIVE" : "INACTIVE"}
+                  </span>
+                </td>
+                <td className="py-4 px-6 text-right">
+                  {guard.isActive && (
+                    <button
+                      onClick={() => { setSelectedGuard(guard); setRemoveModalOpen(true); }}
+                      className="text-red-500 hover:text-red-400 font-medium transition-colors"
+                    >
+                      Deactivate
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {displayedGuards.length === 0 && (
+          <p className="text-center py-10 text-gray-500 italic">No guards found matching your criteria.</p>
+        )}
+      </div>
+
+      <AddGuardModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onSave={handleSaveGuard} />
+
+      {isRemoveModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 p-8 rounded-xl text-center max-w-sm w-full shadow-2xl border border-gray-700">
+            <h2 className="text-xl text-white font-bold mb-4">Confirm Deactivation</h2>
+            <p className="text-gray-400 mb-8">Deactivate guard <span className="text-white font-bold">{selectedGuard?.name}</span>? They will no longer be able to log in.</p>
+            <div className="flex justify-center space-x-4">
+              <button onClick={() => setRemoveModalOpen(false)} className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded font-semibold text-white transition">Cancel</button>
+              <button onClick={handleRemoveGuard} className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-semibold text-white transition">Deactivate</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

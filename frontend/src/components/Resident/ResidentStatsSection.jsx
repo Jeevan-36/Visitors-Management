@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Children } from 'react';
 import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
 import { useUser } from '../../context/UserContextProvider';
@@ -24,6 +24,7 @@ const ResidentStatsSection = () => {
       
       const activityRes = await axios.post("http://localhost:8000/resident/recent-activity", { flatNo }, { withCredentials: true });
       if (activityRes.status < 400) {
+        console.log(activityRes.data);
         setRecentActivity(activityRes.data);
       }
     } catch (err) {

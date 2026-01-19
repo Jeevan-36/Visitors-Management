@@ -12,7 +12,7 @@ import GuardDashboard from "./components/GuardDashboard.jsx";
 import ManagerReports from "./components/ManagerReports.jsx";
 import VisitorDetails from "./components/VisitorDetails.jsx";
 import ManageResidents from "./components/ManageResidents.jsx";
-import ManagerSettings from "./components/ManagerSettings.jsx";
+import Settings from "./components/Settings.jsx";
 import ManageGuards from "./components/ManageGuards.jsx";
 import StatsSection from "./components/StatsSection.jsx";
 import ResidentStatsSection from "./components/Resident/ResidentStatsSection.jsx";
@@ -33,7 +33,6 @@ const router = createBrowserRouter([
         path: "/register",
         element: <Register />,
       },
-     
       {
         path: "/manager",
         element: <ManagerDashboard />,
@@ -61,7 +60,7 @@ const router = createBrowserRouter([
           },
           {
             path: "settings",
-            element: <ManagerSettings />,
+            element: <Settings />,
           },
         ],
       },
@@ -79,7 +78,11 @@ const router = createBrowserRouter([
           },{
             path:"visits",
             element:<GuardVisits/>
-          }
+          },
+          {
+            path: "settings",
+            element: <Settings />,
+          },
         ]
       },
       {
@@ -96,7 +99,11 @@ const router = createBrowserRouter([
           },{
             path:'history',
             element:<ResidentHistory/>
-          }
+          },
+          {
+            path: "settings",
+            element: <Settings />,
+          },
         ]
       },
     ],

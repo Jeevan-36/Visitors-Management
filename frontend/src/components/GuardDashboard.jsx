@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Link,Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import AddVisitorModal from "../components/AddVisitorModal";
 import MarkExitModal from "../components/MarkExitModal";
-
+import { useUser } from "../context/UserContextProvider";
+import LogoutModal from "./LogoutModal";
 const GuardDashboard = () => {
-  const [visitorNotifications,setVisitorNotifications]=useState(10);
+  const [visitorNotifications, setVisitorNotifications] = useState(1);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isExitModalOpen, setExitModalOpen] = useState(false);
+  const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+  const { user } = useUser();
+  const { name } = user;
+
   // Dummy data - In a real app, this would come from your backend API
   const dummyFlats = [
     101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
@@ -62,14 +67,14 @@ const GuardDashboard = () => {
           <div className="border-t border-gray-700 pt-6">
             <div className="flex items-center space-x-3 text-gray-200">
               <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0"></div>
-              <div>Guard Name</div>
+              <div>{name}</div>
             </div>
-            <a
-              href="#"
-              className="block mt-4 py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300 text-sm"
+            <button
+              onClick={() => setLogoutModalOpen(true)}
+              className="block mt-4 py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300 text-sm text-left w-full"
             >
               Logout
-            </a>
+            </button>
           </div>
         </aside>
 
@@ -122,7 +127,7 @@ const GuardDashboard = () => {
 
           {/* Stats Section */}
 
-         <Outlet/>
+          <Outlet />
         </main>
       </div>
 
@@ -135,6 +140,10 @@ const GuardDashboard = () => {
       <MarkExitModal
         isOpen={isExitModalOpen}
         onClose={() => setExitModalOpen(false)}
+      />
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
       />
     </>
   );

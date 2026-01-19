@@ -199,67 +199,59 @@ const getResidentVisitorsCount = async (req, res) => {
 const getResidentRecentActivity = async (req, res) => {
   try {
     const { flatNo } = req.body;
-
-    const pipeline = [
-      { $sort: { createdAt: -1 } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "resident",
-          foreignField: "_id",
-          as: "residentDetails"
-        }
-      },
-      { $unwind: "$residentDetails" }
-    ];
-
-    if (flatNo) {
-      pipeline.push({
-        $match: { "residentDetails.flatNo": flatNo }
-      });
+    if (!flatNo) {
+      return res.status(400).json({ message: "flatNo is required" });
     }
 
-    pipeline.push(
+    const recentActivity = await Visit.aggregate([
+      // 1. Filter by flatNo directly (much faster)
+      { $match: { flatNo: flatNo } },
+
+      // 2. Sort by newest entries
+      { $sort: { createdAt: -1 } },
+
+      // 3. Limit to the latest 5
       { $limit: 5 },
+
+      // 4. Join with the Visitor collection
       {
         $lookup: {
           from: "visitors",
           localField: "visitor",
           foreignField: "_id",
-          as: "visitorDetails"
+          as: "visitorData"
         }
       },
-      { $unwind: "$visitorDetails" },
+
+      // 5. Flatten the visitor array
+      { $unwind: "$visitorData" },
+
+      // 6. Project specific paths to avoid "name" collision
       {
         $project: {
           _id: 0,
-          name: "$visitorDetails.name", 
-          //get purpose here
-           purpose: "$purpose",
-          time: "$createdAt", 
-          status: "$status"
+          name: "$visitorData.name", // Force extraction from Visitor collection
+          purpose: 1,
+          status: 1,
+          time: "$createdAt"
         }
       }
-    );
-
-    const recentActivity = await Visit.aggregate(pipeline);
+    ]);
 
     const formattedActivity = recentActivity.map(visit => ({
       ...visit,
-      time:
-        visit.time?.toLocaleString("en-IN", {
-          dateStyle: "short",
-          timeStyle: "short"
-        }) || "N/A"
+      time: visit.time 
+        ? new Date(visit.time).toLocaleString("en-IN", {
+            dateStyle: "short",
+            timeStyle: "short",
+          }) 
+        : "N/A"
     }));
 
     res.status(200).json(formattedActivity);
   } catch (error) {
-    console.error("Error in getRecentActivity:", error);
-    res.status(500).json({ message: "Error fetching recent visitor activity", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
-
-
 
 export { loginResident ,getPendingApprovals,approveVisitor,denyVisitor,getResidentRecentActivity,getResidentVisitorsCount};

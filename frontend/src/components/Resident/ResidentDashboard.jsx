@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
-import LogoutModal from "./LogoutModal";
+import LogoutModal from "../LogoutModal";
 import { ToastContainer, toast } from "react-toastify";
 import { io } from "socket.io-client";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
-import { useUser } from "../context/UserContextProvider";
+import { useUser } from "../../context/UserContextProvider";
 const socket = io("http://localhost:8000");
 const ResidentDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -13,6 +13,7 @@ const ResidentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [approvalNotifications, setApprovalNotifications] = useState(0);
 
   const { user } = useUser();
   const { flatNo, name } = user;
@@ -40,8 +41,14 @@ const ResidentDashboard = () => {
     fetchApprovals();
 
     const handleNewVisitor = (newVisitData) => {
-      toast.info(`New approval request from: ${newVisitData.visitor.name}`);
+      toast.info(`New approval request from: ${newVisitData.visitor.name}`, {
+        autoClose: false,
+        closeButton: true,
+        pauseOnHover: true,
+      });
+
       setApprovals((currentApprovals) => [newVisitData, ...currentApprovals]);
+      setApprovalNotifications((count) => count + 1);
     };
 
     socket.on("new-visitor", handleNewVisitor);
@@ -102,10 +109,18 @@ const ResidentDashboard = () => {
             </Link>
             <Link
               to="/resident/approvals"
-              className="flex items-center py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
+              onClick={() => setApprovalNotifications(0)}
+              className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
             >
-              Approvals
+              <span>Approvals</span>
+
+              {approvalNotifications > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {approvalNotifications}
+                </span>
+              )}
             </Link>
+
             <Link
               to="/resident/history"
               className="flex items-center py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
@@ -122,8 +137,8 @@ const ResidentDashboard = () => {
         </div>
         <div className="border-t border-gray-700 pt-6">
           <div className="flex items-center space-x-3 text-gray-200">
-            <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0"></div>
-            <div>{name}</div>
+            
+             <div className="font-bold">{name}</div>
           </div>
           <button
             onClick={() => setLogoutModalOpen(true)}
@@ -169,7 +184,12 @@ const ResidentDashboard = () => {
         />
       </main>
 
-      <ToastContainer theme="dark" position="top-right" />
+      <ToastContainer
+        theme="dark"
+        position="top-right"
+        closeOnClick={false}
+        pauseOnHover={true}
+      />
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setLogoutModalOpen(false)}

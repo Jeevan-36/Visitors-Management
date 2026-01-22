@@ -1,22 +1,52 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
-import AddVisitorModal from "../components/AddVisitorModal";
-import MarkExitModal from "../components/MarkExitModal";
-import { useUser } from "../context/UserContextProvider";
-import LogoutModal from "./LogoutModal";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import AddVisitorModal from "./AddVisitorModal";
+import MarkExitModal from "./MarkExitModal";
+import { useUser } from "../../context/UserContextProvider";
+import { io } from "socket.io-client";
+import LogoutModal from "../LogoutModal";
+const socket = io("http://localhost:8000");
 const GuardDashboard = () => {
-  const [visitorNotifications, setVisitorNotifications] = useState(1);
+  const [visitorNotifications, setVisitorNotifications] = useState(0);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isExitModalOpen, setExitModalOpen] = useState(false);
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
   const { user } = useUser();
-  const { name } = user;
+  const { name, employeeId } = user;
+  useEffect(() => {
+    socket.emit("join_room", employeeId);
 
-  // Dummy data - In a real app, this would come from your backend API
-  const dummyFlats = [
-    101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
-  ];
+    const handleResidentResponse = ({ updatedVisit }) => {
+      const { status, flatNo, purpose } = updatedVisit;
+
+      if (status === "Approved") {
+        toast.success(
+          `Visitor approved for Flat ${flatNo}\nPurpose: ${purpose}`,
+          {
+            autoClose: false, // ⏸️ wait for user
+            closeButton: true, // ❎ show cross
+          },
+        );
+      }
+
+      if (status === "Denied") {
+        toast.error(`Visitor denied for Flat ${flatNo}\nPurpose: ${purpose}`, {
+          autoClose: false, // ⏸️ wait for user
+          closeButton: true, // ❎ show cross
+        });
+      }
+      setVisitorNotifications((cnt) => cnt + 1);
+    };
+
+    socket.on("resident-response", handleResidentResponse);
+
+    return () => {
+      socket.off("resident-response", handleResidentResponse);
+    };
+  }, [employeeId]);
 
   return (
     <>
@@ -32,7 +62,7 @@ const GuardDashboard = () => {
             <nav className="space-y-3">
               <Link
                 to=""
-                className="flex items-center justify-between py-2 px-3 rounded-md bg-gray-800 text-white"
+                className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-800 text-white"
               >
                 Dashboard
               </Link>
@@ -40,6 +70,9 @@ const GuardDashboard = () => {
               <Link
                 to="visits"
                 className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-800 text-gray-300"
+                onClick={() => {
+                  setVisitorNotifications(0);
+                }}
               >
                 <span>Visits</span>
                 {visitorNotifications > 0 && (
@@ -66,8 +99,7 @@ const GuardDashboard = () => {
           </div>
           <div className="border-t border-gray-700 pt-6">
             <div className="flex items-center space-x-3 text-gray-200">
-              <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0"></div>
-              <div>{name}</div>
+              <div className="font-bold">{name}</div>
             </div>
             <button
               onClick={() => setLogoutModalOpen(true)}
@@ -135,7 +167,6 @@ const GuardDashboard = () => {
       <AddVisitorModal
         isOpen={isAddModalOpen}
         onClose={() => setAddModalOpen(false)}
-        flats={dummyFlats}
       />
       <MarkExitModal
         isOpen={isExitModalOpen}
@@ -144,6 +175,12 @@ const GuardDashboard = () => {
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setLogoutModalOpen(false)}
+      />
+      <ToastContainer
+        position="top-right"
+        theme="dark"
+        closeOnClick={false}
+        pauseOnHover={true}
       />
     </>
   );

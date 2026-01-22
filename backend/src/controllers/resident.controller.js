@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { Visit } from "../models/visit.model.js";
+import { io } from "../index.js";
 
 const loginResident = asyncHandler(async (req, res) => {
   try {
@@ -86,11 +87,18 @@ const approveVisitor=asyncHandler(async(req,res)=>{
       if(visitDetails.status==='Approved'){
         throw new ApiError(400,"Visitor has already been approved");
       }
-        visitDetails.status="Approved"
-        await visitDetails.save()
+      const {approvedGuardId}=visitDetails;
+      const guard=await User.findOne({_id:approvedGuardId,role:'guard'});
+      const employeeId=guard.employeeId;
+        visitDetails.status="Approved";
+       const updatedVisit = await visitDetails.save(
+        { new: true }
+       );
+        io.to(employeeId).emit("resident-response",{ updatedVisit
+        });
         res.status(200).json(
           {
-            visitDetails
+            updatedVisit
             }
         )
   } catch (error) {
@@ -98,37 +106,55 @@ const approveVisitor=asyncHandler(async(req,res)=>{
   }
 })
 
-const denyVisitor=asyncHandler(async(req,res)=>{
+const denyVisitor = asyncHandler(async (req, res) => {
   try {
-     const {_id}=req.body;
-     if(!_id){
-      throw new ApiError(500,"some error occurred while Denying visitor");
-      }
-      const visitDetails=await Visit.findById(
-        {
-          _id
-          }
-      )
-      if(!visitDetails){
-        throw new ApiError(404,"Visit not found");
-        }
-      if(visitDetails.status==='Exited' ){
-        throw new ApiError(400,"Visitor has already exited ");
-      }
-      if(visitDetails.status==='Denied'){
-        throw new ApiError(400,"Visitor has already been approved");
-      }
-        visitDetails.status="Denied"
-        await visitDetails.save()
-        res.status(200).json(
-          {
-            visitDetails
-            }
-        )
+    const { _id } = req.body;
+
+    if (!_id) {
+      throw new ApiError(400, "Visit ID is required");
+    }
+
+    const visitDetails = await Visit.findById(_id);
+    if (!visitDetails) {
+      throw new ApiError(404, "Visit not found");
+    }
+
+    if (visitDetails.status === "Exited") {
+      throw new ApiError(400, "Visitor has already exited");
+    }
+
+    if (visitDetails.status === "Denied") {
+      throw new ApiError(400, "Visitor has already been denied");
+    }
+
+ 
+    const { approvedGuardId } = visitDetails;
+    const guard = await User.findOne({ _id: approvedGuardId, role: "guard" });
+
+    if (!guard) {
+      throw new ApiError(404, "Guard not found");
+    }
+
+    const employeeId = guard.employeeId;
+
+    visitDetails.status = "Denied";
+     const updatedVisit = await visitDetails.save({
+      new: true,
+     });
+
+
+    io.to(employeeId).emit("resident-response", {
+      updatedVisit,
+    });
+
+    res.status(200).json({ updatedVisit });
   } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while approving visitor by Resident"});
+    res.status(error.statusCode || 500).json({
+      message: error.message || "Error while denying visitor by Resident",
+    });
   }
-})
+});
+
 
 
 const getResidentVisitorsCount = async (req, res) => {
@@ -211,7 +237,7 @@ const getResidentRecentActivity = async (req, res) => {
       { $sort: { createdAt: -1 } },
 
       // 3. Limit to the latest 5
-      { $limit: 5 },
+      { $limit: 10 },
 
       // 4. Join with the Visitor collection
       {

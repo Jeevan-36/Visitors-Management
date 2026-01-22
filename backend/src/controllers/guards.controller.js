@@ -68,16 +68,22 @@ const loginGuard = asyncHandler(async (req, res) => {
 const markEntry = asyncHandler(async (req, res) => {
   try {
   
-    const { name, phoneNo, flatNo,purpose,email } = req.body;
-    console.log(req.body);
+    const { name, phoneNo, flatNo,purpose,email,employeeId } = req.body;
     if (!name || !phoneNo || !flatNo || !purpose || !email) {
       throw new ApiError(400, "Name, phone number,email and flat number  and purpose of visit are required.");
     }
+    if(!employeeId){
+      throw new ApiError(400,"Employee ID of guard is required.");
+      }
+
   
     const resident = await User.findOne({ flatNo: flatNo, role: 'resident' });
-  console.log("res",resident);
     if (!resident) {
       throw new ApiError(404, "Invalid flat number: No resident found for this flat.");
+    }
+    const guard = await User.findOne({  employeeId, role: 'guard' });
+    if (!guard) {
+      throw new ApiError(404, "Invalid employee ID: No guard found with this ID.");
     }
 
     let visitor = await Visitor.findOne({  email });
@@ -101,11 +107,11 @@ const markEntry = asyncHandler(async (req, res) => {
     const newVisit = await Visit.create({
       visitor: visitor._id,
       resident: resident._id,
+      approvedGuardId: guard._id,
       flatNo: flatNo,
       purpose: purpose,
       entryTime: new Date(),
     });
-    console.log(newVisit);
     if (!newVisit) {
       throw new ApiError(500, "Failed to create a new visit record.");
     }

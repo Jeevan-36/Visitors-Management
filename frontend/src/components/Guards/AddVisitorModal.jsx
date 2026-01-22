@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-
+import { useUser } from "../../context/UserContextProvider";
 const AddVisitorModal = ({ isOpen, onClose }) => {
   const [visitorName, setVisitorName] = useState("");
   // We initialize this as empty and set it once flatList is loaded
@@ -11,7 +11,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
   const [otp, setOtp] = useState("");
   const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [error, setError] = useState("");
-  
+  const { user } = useUser();
+  const { employeeId } = user;
   // New state for the fetched list
   const [flatList, setFlatList] = useState([]);
 
@@ -19,12 +20,12 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     const getFlatList = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/flat-numbers", { 
-          withCredentials: true 
+        const response = await axios.get("http://localhost:8000/flat-numbers", {
+          withCredentials: true,
         });
         const flats = response.data?.flatNumbers || [];
         setFlatList(flats);
-        
+
         // Automatically select the first flat as default if available
         if (flats.length > 0) {
           setHostResidentFlat(flats[0]);
@@ -56,7 +57,7 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       await axios.post(
         "http://localhost:8000/guard/send-email-otp",
         { email },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       setShowOtpScreen(true);
     } catch {
@@ -74,7 +75,7 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       await axios.post(
         "http://localhost:8000/guard/verify-email-otp",
         { email, otp },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       await submitMarkEntry();
     } catch {
@@ -88,23 +89,30 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       flatNo: hostResidentFlat,
       purpose,
       phoneNo: phoneNumber,
-      email
+      email,
+      employeeId,
     };
 
     try {
       const response = await axios.post(
         "http://localhost:8000/guard/mark-entry",
         visitorData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (response.status < 400) handleClose();
-    } catch(error) {
+    } catch (error) {
       setError(error.message || "Failed to mark entry.");
     }
   };
 
   const handleAddVisitor = async () => {
-    if (!visitorName || !hostResidentFlat || !purpose || !phoneNumber || !email) {
+    if (
+      !visitorName ||
+      !hostResidentFlat ||
+      !purpose ||
+      !phoneNumber ||
+      !email
+    ) {
       setError("All fields are mandatory.");
       return;
     }
@@ -118,7 +126,7 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       const response = await axios.post(
         "http://localhost:8000/guard/check-visitor",
         { email },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (response.data?.exists) {
@@ -140,13 +148,20 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
           <h2 className="text-xl font-semibold text-white">
             {showOtpScreen ? "Verify OTP" : "Add New Visitor"}
           </h2>
-          <button onClick={handleClose} className="text-gray-400 hover:text-white">✕</button>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
 
         {!showOtpScreen ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">Visitor Name</label>
+              <label className="block text-gray-300 text-sm font-bold mb-2">
+                Visitor Name
+              </label>
               <input
                 placeholder="Full Name"
                 className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
@@ -156,7 +171,9 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">Flat No</label>
+              <label className="block text-gray-300 text-sm font-bold mb-2">
+                Flat No
+              </label>
               <select
                 className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white max-h-40 overflow-y-auto"
                 value={hostResidentFlat}
@@ -176,7 +193,9 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">Purpose</label>
+              <label className="block text-gray-300 text-sm font-bold mb-2">
+                Purpose
+              </label>
               <input
                 placeholder="Delivery, Guest, etc."
                 className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
@@ -186,7 +205,9 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">Phone Number</label>
+              <label className="block text-gray-300 text-sm font-bold mb-2">
+                Phone Number
+              </label>
               <input
                 placeholder="10 digit number"
                 className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
@@ -196,7 +217,9 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">Email</label>
+              <label className="block text-gray-300 text-sm font-bold mb-2">
+                Email
+              </label>
               <input
                 type="email"
                 placeholder="example@email.com"

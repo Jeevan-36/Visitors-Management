@@ -25,6 +25,10 @@ const VisitSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  approvedGuardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   entryTime: { type: Date },
   exitTime: { type: Date },
 }, { timestamps: true ,strict:"throw"});

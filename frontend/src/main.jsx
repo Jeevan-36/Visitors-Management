@@ -5,18 +5,16 @@ import { UserContextProvider } from "./context/UserContextProvider";
 import App from "./App.jsx";
 import "./index.css";
 import Login from "./components/Login.jsx";
-import Register from "./components/Register.jsx";
-import ManagerDashboard from "./components/ManagerDashboard.jsx";
-import ResidentDashboard from "./components/ResidentDashboard.jsx";
-import GuardDashboard from "./components/GuardDashboard.jsx";
-import ManagerReports from "./components/ManagerReports.jsx";
-import VisitorDetails from "./components/VisitorDetails.jsx";
-import ManageResidents from "./components/ManageResidents.jsx";
+import ManagerDashboard from "./components/Manager/ManageGuards.jsx";
+import ResidentDashboard from "./components/Resident/ResidentDashboard.jsx";
+import GuardDashboard from "./components/Guards/GuardDashboard.jsx";
+import ManagerReports from "./components/Manager/ManagerReports.jsx";
+import ManageResidents from "./components/Manager/ManageResidents.jsx";
 import Settings from "./components/Settings.jsx";
-import ManageGuards from "./components/ManageGuards.jsx";
+import ManageGuards from "./components/Manager/ManageGuards.jsx";
 import StatsSection from "./components/StatsSection.jsx";
 import ResidentStatsSection from "./components/Resident/ResidentStatsSection.jsx";
-import ResidentApprovals from "./components/ResidentApprovals.jsx";
+import ResidentApprovals from "./components/Resident/ResidentApprovals.jsx";
 import ResidentHistory from "./components/Resident/ResidentHistory.jsx";
 import GuardReports from "./components/Guards/GuardReports.jsx";
 import GuardVisits from "./components/Guards/GuardVisits.jsx";
@@ -28,10 +26,6 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
-      },
-      {
-        path: "/register",
-        element: <Register />,
       },
       {
         path: "/manager",
@@ -49,10 +43,6 @@ const router = createBrowserRouter([
           {
             path: "residents",
             element: <ManageResidents />,
-          },
-          {
-            path: "visitors",
-            element: <VisitorDetails />,
           },
           {
             path:"guards",

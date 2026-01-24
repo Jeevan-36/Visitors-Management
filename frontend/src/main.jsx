@@ -1,11 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { UserContextProvider } from "./context/UserContextProvider";
 import App from "./App.jsx";
 import "./index.css";
 import Login from "./components/Login.jsx";
-import ManagerDashboard from "./components/Manager/ManageGuards.jsx";
+import ManagerDashboard from "./components/Manager/ManagerDashboard.jsx";
 import ResidentDashboard from "./components/Resident/ResidentDashboard.jsx";
 import GuardDashboard from "./components/Guards/GuardDashboard.jsx";
 import ManagerReports from "./components/Manager/ManagerReports.jsx";

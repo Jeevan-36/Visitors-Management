@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js'
 const MarkExitModal = ({ isOpen, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
@@ -16,7 +16,7 @@ const MarkExitModal = ({ isOpen, onClose }) => {
   try {
     const exitData = { phoneNo: phoneNumber };
     console.log('Marking exit for:', exitData);
-     const response = await axios.post('http://localhost:8000/guard/mark-exit', exitData, {
+     const response = await api.post('/guard/mark-exit', exitData, {
       withCredentials: true
     });
     if (response.status < 400) {

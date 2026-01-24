@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js'
 
 const ManagerReports = () => {
   const [phoneNo, setPhoneNo] = useState('');
@@ -23,7 +23,7 @@ const ManagerReports = () => {
   useEffect(() => {
     const getFlatList = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/flat-numbers", { withCredentials: true });
+        const response = await api.get("/flat-numbers", { withCredentials: true });
         setFlatList(response.data?.flatNumbers || []);
       } catch (err) {
         console.error("Failed to fetch flats:", err);
@@ -41,7 +41,7 @@ const ManagerReports = () => {
     const filterParameters = { phoneNo, flatNo, status, startDate, endDate };
     
     try {
-      const response = await axios.post('http://localhost:8000/manager/search-log', filterParameters, {
+      const response = await api.post('/manager/search-log', filterParameters, {
         withCredentials: true
       });
 

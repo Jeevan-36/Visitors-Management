@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api/axios.js'
 import { useOutletContext } from "react-router-dom";
 import { useUser } from "../../context/UserContextProvider";
 
-/* =========================
-   Status Color Configuration
-========================= */
+
 const statusConfig = {
   Approved: { styles: "bg-green-800 text-green-200" },
   Active: { styles: "bg-green-800 text-green-200" },
@@ -27,8 +25,8 @@ const ResidentStatsSection = () => {
 
   const fetchData = async () => {
     try {
-      const summaryRes = await axios.post(
-        "http://localhost:8000/resident/visitors-summary",
+      const summaryRes = await api.post(
+        "/resident/visitors-summary",
         { flatNo },
         { withCredentials: true },
       );
@@ -42,8 +40,8 @@ const ResidentStatsSection = () => {
         setTodayCheckoutCount(exitedVisitors);
       }
 
-      const activityRes = await axios.post(
-        "http://localhost:8000/resident/recent-activity",
+      const activityRes = await api.post(
+        "/resident/recent-activity",
         { flatNo },
         { withCredentials: true },
       );

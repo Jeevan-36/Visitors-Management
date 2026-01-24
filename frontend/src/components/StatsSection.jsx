@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios.js'
 
 const StatsSection = ({ isAddModalOpen, isExitModalOpen }) => {
   const [onSiteVisitorsCount, setOnSiteVisitorsCount] = useState(0);
@@ -17,7 +17,7 @@ const StatsSection = ({ isAddModalOpen, isExitModalOpen }) => {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/visitors-summary", {
+        const response = await api.get("/visitors-summary", {
           withCredentials: true,
         });
         if (response.status < 400) {
@@ -33,7 +33,7 @@ const StatsSection = ({ isAddModalOpen, isExitModalOpen }) => {
 
     const fetchRecentActivity = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/recent-activity", {
+        const response = await api.get("/recent-activity", {
           withCredentials: true,
         });
         if (response.status < 400) {

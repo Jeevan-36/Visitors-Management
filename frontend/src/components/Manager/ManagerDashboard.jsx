@@ -8,10 +8,6 @@ const ManagerDashboard = () => {
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
   const { user } = useUser();
    const {  name } = user;
-  // Dummy data - In a real app, this would come from your backend API
-  const dummyFlats = [
-    101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
-  ];
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen font-sans flex">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api/axios.js'
 
 /* =========================
    Add Resident Modal
@@ -25,8 +25,8 @@ const ResidentModal = ({ isOpen, onClose, onSave, flatList }) => {
   const handleAddNewResident = async () => {
     setError("");
     try {
-      const response = await axios.post(
-        "http://localhost:8000/manager/register",
+      const response = await api.post(
+        "/manager/register",
         { name, phoneNo: phone, email, password, role, flatNo },
         { withCredentials: true }
       );
@@ -88,8 +88,8 @@ const ManageResidents = () => {
     const fetchData = async () => {
       try {
         const [resDetails, resFlats] = await Promise.all([
-          axios.get("http://localhost:8000/manager/residents-details", { withCredentials: true }),
-          axios.get("http://localhost:8000/flat-numbers", { withCredentials: true })
+          api.get("/manager/residents-details", { withCredentials: true }),
+          api.get("/flat-numbers", { withCredentials: true })
         ]);
         setAllResidents(resDetails.data?.residents || []);
         setDisplayedResidents(resDetails.data?.residents || []);
@@ -120,8 +120,8 @@ const ManageResidents = () => {
 
   const handleRemoveResident = async () => {
     try {
-      await axios.put(
-        "http://localhost:8000/manager/deactivate-resident",
+      await api.put(
+        "/manager/deactivate-resident",
         { flatNo: selectedResident.flatNo },
         { withCredentials: true }
       );

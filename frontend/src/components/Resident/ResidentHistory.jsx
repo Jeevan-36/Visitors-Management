@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from '../../api/axios.js'
 import { useUser } from "../../context/UserContextProvider";
 const ResidentHistory = () => {
   const [phoneNo, setPhoneNo] = useState("");
@@ -37,8 +37,8 @@ const ResidentHistory = () => {
     const filterParameters = { phoneNo, flatNo, status, startDate, endDate };
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/resident/approval-history",
+      const response = await api.post(
+        "/resident/approval-history",
         filterParameters,
         {
           withCredentials: true,

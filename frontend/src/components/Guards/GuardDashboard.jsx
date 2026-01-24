@@ -7,7 +7,8 @@ import MarkExitModal from "./MarkExitModal";
 import { useUser } from "../../context/UserContextProvider";
 import { io } from "socket.io-client";
 import LogoutModal from "../LogoutModal";
-const socket = io("http://localhost:8000");
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const socket = io(SOCKET_URL);
 const GuardDashboard = () => {
   const [visitorNotifications, setVisitorNotifications] = useState(0);
   const [isSidebarOpen, setSidebarOpen] = useState(true);

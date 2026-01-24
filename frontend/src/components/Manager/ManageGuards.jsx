@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from '../../api/axios.js'
 
 /* =========================
    Add Guard Modal
@@ -23,8 +23,8 @@ const AddGuardModal = ({ isOpen, onClose, onSave }) => {
   const handleAddNewGuard = async () => {
     setError("");
     try {
-      const response = await axios.post(
-        "http://localhost:8000/manager/register",
+      const response = await api.post(
+        "/manager/register",
         { name, phoneNo: phone, email, password, role: "guard" },
         { withCredentials: true }
       );
@@ -84,7 +84,7 @@ const ManageGuards = () => {
   useEffect(() => {
     const fetchGuards = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/manager/guards-details", { withCredentials: true });
+        const response = await api.get("/manager/guards-details", { withCredentials: true });
         const guards = response.data?.guards || [];
         setAllGuards(guards);
         setDisplayedGuards(guards);
@@ -121,8 +121,8 @@ const ManageGuards = () => {
 
   const handleRemoveGuard = async () => {
     try {
-      await axios.put(
-        "http://localhost:8000/manager/deactivate-guard",
+      await api.put(
+        "/manager/deactivate-guard",
         { employeeId: selectedGuard.employeeId },
         { withCredentials: true }
       );

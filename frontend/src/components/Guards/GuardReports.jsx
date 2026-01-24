@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios.js'
 
 const GuardReports = () => {
   const [phoneNo, setPhoneNo] = useState('');
@@ -18,11 +18,11 @@ const GuardReports = () => {
     Denied: { styles: 'bg-red-800 text-red-200', exitText: 'Entry Denied' },
   };
 
-  // --- FETCH FLAT LIST (Same as Manager) ---
+  
   useEffect(() => {
     const getFlatList = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/flat-numbers", { withCredentials: true });
+        const response = await api.get("/flat-numbers", { withCredentials: true });
         setFlatList(response.data?.flatNumbers || []);
       } catch (err) {
         console.error("Failed to fetch flats:", err);
@@ -41,7 +41,7 @@ const GuardReports = () => {
     const filterParameters = { phoneNo, flatNo, status };
     
     try {
-      const response = await axios.post('http://localhost:8000/guard/search-log', filterParameters, {
+      const response = await api.post('/guard/search-log', filterParameters, {
         withCredentials: true
       });
 

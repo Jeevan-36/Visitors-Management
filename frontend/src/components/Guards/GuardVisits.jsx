@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../../api/axios.js'
 import React, { useEffect, useState } from 'react';
 
 const GuardVisits = () => {
@@ -14,12 +14,12 @@ const GuardVisits = () => {
   useEffect(() => {
     const fetchRecentActivity = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8000/guard/get-todays-visits",
+        const response = await api.get(
+          "/guard/get-todays-visits",
           { withCredentials: true }
         );
         console.log(response.data);
-        setRecentActivity(response.data); // backend already returns formatted objects
+        setRecentActivity(response.data); 
       } catch (error) {
         console.error("Error fetching visits", error);
       }

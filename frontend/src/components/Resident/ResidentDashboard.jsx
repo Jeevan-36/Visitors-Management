@@ -3,10 +3,11 @@ import { Link, Outlet } from "react-router-dom";
 import LogoutModal from "../LogoutModal";
 import { ToastContainer, toast } from "react-toastify";
 import { io } from "socket.io-client";
-import axios from "axios";
+import api from '../../api/axios.js'
 import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "../../context/UserContextProvider";
-const socket = io("http://localhost:8000");
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const socket = io(SOCKET_URL);
 const ResidentDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [approvals, setApprovals] = useState([]);
@@ -25,8 +26,8 @@ const ResidentDashboard = () => {
       setLoading(true);
       setError("");
       try {
-        const response = await axios.post(
-          `http://localhost:8000/resident/pending-approvals`,
+        const response = await api.post(
+          `/resident/pending-approvals`,
           { flatNo },
           { withCredentials: true },
         );
@@ -60,8 +61,8 @@ const ResidentDashboard = () => {
 
   const handleApprove = async (visitId) => {
     try {
-      const response = await axios.put(
-        "http://localhost:8000/resident/approve-visit",
+      const response = await api.put(
+        "/resident/approve-visit",
         { _id: visitId },
         { withCredentials: true },
       );
@@ -78,8 +79,8 @@ const ResidentDashboard = () => {
 
   const handleDeny = async (visitId) => {
     try {
-      const response = await axios.put(
-        "http://localhost:8000/resident/deny-visit",
+      const response = await api.put(
+        "/resident/deny-visit",
         { _id: visitId },
         { withCredentials: true },
       );

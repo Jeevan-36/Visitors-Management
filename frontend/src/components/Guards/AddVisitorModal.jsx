@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/axios.js";
 import { useUser } from "../../context/UserContextProvider";
 const AddVisitorModal = ({ isOpen, onClose }) => {
   const [visitorName, setVisitorName] = useState("");
@@ -20,7 +20,7 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     const getFlatList = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/flat-numbers", {
+        const response = await api.get("/flat-numbers", {
           withCredentials: true,
         });
         const flats = response.data?.flatNumbers || [];
@@ -54,8 +54,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
 
   const triggerEmailOtp = async () => {
     try {
-      await axios.post(
-        "http://localhost:8000/guard/send-email-otp",
+      await api.post(
+        "/guard/send-email-otp",
         { email },
         { withCredentials: true },
       );
@@ -72,8 +72,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
     }
 
     try {
-      await axios.post(
-        "http://localhost:8000/guard/verify-email-otp",
+      await api.post(
+        "/guard/verify-email-otp",
         { email, otp },
         { withCredentials: true },
       );
@@ -94,11 +94,9 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
     };
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/guard/mark-entry",
-        visitorData,
-        { withCredentials: true },
-      );
+      const response = await api.post("/guard/mark-entry", visitorData, {
+        withCredentials: true,
+      });
       if (response.status < 400) handleClose();
     } catch (error) {
       setError(error.message || "Failed to mark entry.");
@@ -123,8 +121,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
     }
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/guard/check-visitor",
+      const response = await api.post(
+        "/guard/check-visitor",
         { email },
         { withCredentials: true },
       );

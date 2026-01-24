@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from '../api/axios.js'
 import { useUser } from "../context/UserContextProvider";
 
 const Login = () => {
@@ -31,8 +31,8 @@ const Login = () => {
         role,
       };
 
-      const response = await axios.post(
-        `http://localhost:8000/${role}/login`,
+      const response = await api.post(
+        `/${role}/login`,
         requestObj,
         { withCredentials: true }
       );

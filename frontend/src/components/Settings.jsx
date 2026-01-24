@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from '../api/axios.js'
 import { useNavigate } from "react-router-dom";
 const Settings = () => {
   // Profile
@@ -31,8 +31,8 @@ const Settings = () => {
     };
 
     try {
-      const response = await axios.put(
-        "http://localhost:8000/update-profile",
+      const response = await api.put(
+        "/update-profile",
         updatedDetails,
         { withCredentials: true },
       );
@@ -40,7 +40,7 @@ const Settings = () => {
       if (response.status < 400) {
         alert("Profile updated successfully!");
 
-        await axios.get("http://localhost:8000/logout", {
+        await api.get("/logout", {
           withCredentials: true,
         });
 
@@ -86,8 +86,8 @@ const Settings = () => {
     };
 
     try {
-      const response = await axios.put(
-        "http://localhost:8000/change-password",
+      const response = await api.put(
+        "/change-password",
         updatedDetails,
         { withCredentials: true },
       );
@@ -95,7 +95,7 @@ const Settings = () => {
       if (response.status < 400) {
         alert("Password updated successfully!");
 
-        await axios.get("http://localhost:8000/logout", {
+        await api.get("/logout", {
           withCredentials: true,
         });
 

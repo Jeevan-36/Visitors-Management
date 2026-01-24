@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from '../api/axios.js'
 import { useNavigate } from "react-router-dom";
 
 const LogoutModal = ({ isOpen, onClose }) => {
@@ -11,7 +11,7 @@ const LogoutModal = ({ isOpen, onClose }) => {
   const handleLogout = async () => {
     setError("");
     try {
-      await axios.get("http://localhost:8000/logout", {
+      await api.get("/logout", {
         withCredentials: true,
       });
 

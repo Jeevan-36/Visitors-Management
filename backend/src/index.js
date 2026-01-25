@@ -29,14 +29,18 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 3000;
 
+
 connectDB()
   .then(() => {
-    httpServer.listen(PORT, () => {
-      console.log(`🚀 Server with Socket.IO running on port ${PORT}`);
-
-    });
+    
+    if (process.env.NODE_ENV !== 'production') {
+      httpServer.listen(PORT, () => {
+        console.log(` Local Server running on port ${PORT}`);
+      });
+    }
   })
   .catch((err) => {
     console.error("mongo db connection failed", err);
   });
+
 export default app;

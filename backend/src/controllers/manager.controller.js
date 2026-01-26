@@ -85,10 +85,12 @@ if (occupiedFlat) {
 const loginManager = asyncHandler(async (req, res) => {
   try {
     const { phoneNo, password, role } = req.body;
+    console.log("reqe",req.body);
     if (!phoneNo || !password || !role) {
       throw new ApiError(400, "Please provide all fields");
     }
     const user = await User.findOne({ phoneNo, role: "manager" }).select("+password");
+    console.log("user",user);
     if (!user) {
       throw new ApiError(404, "Manager not found");
     }

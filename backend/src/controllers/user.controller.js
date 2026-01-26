@@ -1,7 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { Visitor } from "../models/visitors.model.js";
 import { Visit } from "../models/visit.model.js";
 import { Flat } from "../models/flat.model.js";
 import nodemailer from "nodemailer";
@@ -20,9 +19,12 @@ export const logoutUser=asyncHandler(async (req,res) => {
     console.log("Logging out user",req.user);
    try {
      const userId=req.user._id;
-     const user=await User.findByIdAndUpdate(userId,
-         { $set: { refreshToken: undefined } },
-     );
+            await User.findByIdAndUpdate(
+         userId,
+      { $unset: { refreshToken: 1 } },
+      { new: true }
+      );
+      
      const options={
     httpOnly:true,
     secure:false,
@@ -279,4 +281,66 @@ export const updatePassword=asyncHandler(async(req,res)=>{
   } catch (error) {
     res.status(error.statuscode || 500).json({ message: error.message || "Error while updating password" });
   } 
+});
+
+export const loginUser=async (phoneNo,password,role)=>{
+
+ try {
+   if (!phoneNo || !password || !role) {
+     throw new ApiError(400, "Please provide all fields");
+   }
+ 
+   const user = await User.findOne({ phoneNo, role }).select("+password");
+ 
+   if (!user) {
+     throw new ApiError(404, "User not found");
+   }
+ 
+   const isPasswordValid = await user.isPasswordCorrect(password);
+   if (!isPasswordValid) {
+     throw new ApiError(401, "Invalid password");
+   }
+ 
+   const accessToken = user.generateAccessToken();
+   const refreshToken = user.generateRefreshToken();
+ 
+   user.refreshToken = refreshToken;
+   await user.save({ validateBeforeSave: false });
+ 
+   const userDetails = await User.findById(user._id).select("-refreshToken -password");
+ 
+   return {  userDetails, accessToken, refreshToken };
+ } catch (error) {
+  throw error;
+ }
+
+}
+export const loginAsGuest = asyncHandler(async (req, res) => {
+  try {
+    const { role } = req.body;
+  
+    if (!["manager", "guard", "resident"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+    
+  let response={};
+  if(role==="manager"){
+    response= await loginUser("9000000001","guest12345","manager");
+  
+  }
+    else if (role === "resident") {
+     response=await loginUser("9000000002", "guest12345", "resident");
+     
+    }
+  
+    else if (role === "guard") {
+      response=await loginUser("9000000003", "guest12345", "guard");
+    }
+    res.status(200).cookie("accessToken",response.accessToken).
+    cookie("refreshToken",response.refreshToken).
+    json({ user: response.userDetails });
+  
+  } catch (error) {
+     res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Guard" });
+  }
 });

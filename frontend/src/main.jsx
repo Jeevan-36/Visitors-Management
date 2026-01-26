@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import App from "./App.jsx";
 import "./index.css";
 import Login from "./components/Login.jsx";
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       {
+        index: true,
+        element: <Navigate to="/login" replace />,
+      },
+      {
         path: "/login",
         element: <Login />,
       },
@@ -38,14 +43,14 @@ const router = createBrowserRouter([
             path: "reports",
             element: <ManagerReports />,
           },
-          
+
           {
             path: "residents",
             element: <ManageResidents />,
           },
           {
-            path:"guards",
-            element:<ManageGuards/>
+            path: "guards",
+            element: <ManageGuards />,
           },
           {
             path: "settings",
@@ -57,43 +62,46 @@ const router = createBrowserRouter([
       {
         path: "/guard",
         element: <GuardDashboard />,
-        children:[
+        children: [
           {
-            path:"",
-            element:<StatsSection/>
-          },{
-            path:"reports",
-            element:<GuardReports/>
-          },{
-            path:"visits",
-            element:<GuardVisits/>
+            path: "",
+            element: <StatsSection />,
+          },
+          {
+            path: "reports",
+            element: <GuardReports />,
+          },
+          {
+            path: "visits",
+            element: <GuardVisits />,
           },
           {
             path: "settings",
             element: <Settings />,
           },
-        ]
+        ],
       },
       {
         path: "/resident",
         element: <ResidentDashboard />,
-        children:[
+        children: [
           {
             path: "",
             element: <ResidentStatsSection />,
           },
           {
-            path:'approvals',
-            element:<ResidentApprovals/>
-          },{
-            path:'history',
-            element:<ResidentHistory/>
+            path: "approvals",
+            element: <ResidentApprovals />,
+          },
+          {
+            path: "history",
+            element: <ResidentHistory />,
           },
           {
             path: "settings",
             element: <Settings />,
           },
-        ]
+        ],
       },
     ],
   },
@@ -101,5 +109,5 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <RouterProvider router={router}></RouterProvider>
-  </StrictMode>
+  </StrictMode>,
 );

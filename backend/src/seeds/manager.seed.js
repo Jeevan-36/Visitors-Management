@@ -6,7 +6,7 @@ dotenv.config();
 // for initial manger account creation
 const seedManager = async () => {
   try {
-    await mongoose.connect(`${process.env.MONGODB_URL}/visitors`);
+    await mongoose.connect(`${process.env.MONGODB_URI}`);
 
     const existingManager = await User.findOne({ role: 'manager' });
     if (existingManager) {
@@ -24,7 +24,7 @@ const seedManager = async () => {
       flatNo: "A-101",
       employeeId:"1"
     };
-    // ------------------------------------
+    
 
     const manager = new User(managerData);
     await manager.save(); 

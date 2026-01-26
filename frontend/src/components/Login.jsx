@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from '../api/axios.js'
+import api from "../api/axios.js";
 import { useUser } from "../context/UserContextProvider";
 
 const Login = () => {
@@ -23,6 +23,10 @@ const Login = () => {
       setError("Password must be at least 8 characters long.");
       return;
     }
+    if (!role) {
+      setError("Please select a role to Login");
+      return;
+    }
 
     try {
       const requestObj = {
@@ -31,11 +35,9 @@ const Login = () => {
         role,
       };
 
-      const response = await api.post(
-        `/${role}/login`,
-        requestObj,
-        { withCredentials: true }
-      );
+      const response = await api.post(`/${role}/login`, requestObj, {
+        withCredentials: true,
+      });
 
       if (response.status < 400) {
         setUser(response.data?.user);
@@ -49,15 +51,40 @@ const Login = () => {
       }
     }
   };
+  const handleGuestLogin = async () => {
+    setError("");
+
+    if (!role) {
+      setError("Please select a role to continue as guest.");
+      return;
+    }
+
+    try {
+      const response = await api.post(
+        "/login-guest",
+        { role },
+        { withCredentials: true },
+      );
+      console.log(response);
+
+      if (response.status < 400) {
+        setUser(response.data?.user);
+        navigate(`../${role}`);
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to login as guest. Please try again.",
+      );
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-black bg-opacity-70 p-4 font-sans">
       <div className="w-full max-w-sm p-8 space-y-6 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">Welcome Back!</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Sign in to continue.
-          </p>
+          <p className="mt-2 text-sm text-gray-400">Sign in to continue.</p>
         </div>
 
         <form className="mt-6 space-y-6" onSubmit={handleLogin}>
@@ -73,7 +100,6 @@ const Login = () => {
             </label>
             <input
               type="tel"
-              required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="mt-1 w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500"
@@ -87,7 +113,6 @@ const Login = () => {
             </label>
             <input
               type="password"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500"
@@ -100,7 +125,6 @@ const Login = () => {
               Select Your Role
             </label>
             <select
-              required
               value={role}
               onChange={(e) => setRole(e.target.value)}
               className="mt-1 w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:border-blue-500"
@@ -113,11 +137,14 @@ const Login = () => {
           </div>
 
           <div className="text-right text-xs">
-            <a href="#" className="font-medium text-blue-400 hover:underline">
-              Forgot Password?
-            </a>
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              className="font-medium text-blue-400 hover:underline"
+            >
+              Explore as Guest
+            </button>
           </div>
-
           <button
             type="submit"
             className="w-full py-2 px-4 rounded font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20 transition"

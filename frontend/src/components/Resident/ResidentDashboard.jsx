@@ -18,7 +18,7 @@ const ResidentDashboard = () => {
 
   const { user } = useUser();
   const { flatNo, name } = user;
-
+  console.log("Resident",flatNo,name);
   useEffect(() => {
     socket.emit("join_room", flatNo);
 

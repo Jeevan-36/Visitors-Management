@@ -32,7 +32,7 @@ import residentRouter from './routes/residents.routes.js'
 app.use('/guard',guardRouter);
 app.use('/manager',managerRouter);
 app.use('/resident',residentRouter);
-import { getVisitorsSummary,getFlatNumbers } from "./controllers/user.controller.js";
+import { getVisitorsSummary,getFlatNumbers, loginAsGuest } from "./controllers/user.controller.js";
 app.get('/visitors-summary',getVisitorsSummary); 
 import { getRecentVisitorActivity } from "./controllers/user.controller.js";
 app.get('/recent-activity', getRecentVisitorActivity);
@@ -43,6 +43,7 @@ app.get('/logout',verifyUser,logoutUser);
 app.get('/flat-numbers',getFlatNumbers);
 app.put('/update-profile',verifyUser,updateProfile);
 app.put('/change-password',verifyUser,updatePassword);
+app.post('/login-guest',loginAsGuest);
 export {
     app
 }

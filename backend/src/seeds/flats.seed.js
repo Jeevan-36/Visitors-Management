@@ -6,17 +6,18 @@ dotenv.config();
 
 const seedFlats = async () => {
   try {
-    await mongoose.connect(`${process.env.MONGODB_URL}/visitors`);
+    await mongoose.connect(`${process.env.MONGODB_URI}`);
     console.log("MongoDB connected");
 
-    const flats = [];
+    const flats = [{ flatNo: "GUEST-FLAT" }];
     const blocks = ["A", "B", "C"];
-
+  
     for (const block of blocks) {
       for (let i = 101; i <= 105; i++) {
         flats.push({ flatNo: `${block}-${i}` });
       }
     }
+
 
     await Flat.insertMany(flats, { ordered: false });
 

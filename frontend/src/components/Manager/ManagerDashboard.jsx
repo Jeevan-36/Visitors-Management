@@ -8,6 +8,7 @@ const ManagerDashboard = () => {
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
   const { user } = useUser();
    const {  name } = user;
+    console.log("Manager",name);
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen font-sans flex">

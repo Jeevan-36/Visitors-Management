@@ -336,8 +336,13 @@ export const loginAsGuest = asyncHandler(async (req, res) => {
     else if (role === "guard") {
       response=await loginUser("9000000003", "guest12345", "guard");
     }
-    res.status(200).cookie("accessToken",response.accessToken).
-    cookie("refreshToken",response.refreshToken).
+    const options={
+    httpOnly:true,
+    secure:true,
+      sameSite: "none"    
+   }
+    res.status(200).cookie("accessToken",response.accessToken,options).
+    cookie("refreshToken",response.refreshToken,options).
     json({ user: response.userDetails });
   
   } catch (error) {

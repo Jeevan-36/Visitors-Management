@@ -106,8 +106,8 @@ const loginManager = asyncHandler(async (req, res) => {
    const userDetails = await User.findOne({ phoneNo, role: "manager" }).select("-refreshToken");
    const options={
     httpOnly:true,
-    secure:false,
-      sameSite: "lax"    
+     secure: true, 
+sameSite: "none",
    }
    
     res.

@@ -32,8 +32,8 @@ const loginResident = asyncHandler(async (req, res) => {
 sameSite: "none",  
    }
     res.
-    cookie("accessToken",accessToken).
-    cookie("refreshToken",refreshToken).
+    cookie("accessToken",accessToken,options).
+    cookie("refreshToken",refreshToken,options).
     status(200).json({ user: userDetails });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Resident" });

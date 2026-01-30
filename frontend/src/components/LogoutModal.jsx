@@ -14,11 +14,11 @@ const LogoutModal = ({ isOpen, onClose }) => {
       await api.get("/logout", {
         withCredentials: true,
       });
-
-      onClose(); // ✅ close modal first
+    localStorage.removeItem("accessToken");
+      onClose();
 
       setTimeout(() => {
-        navigate("/login"); // ✅ navigate after state update
+        navigate("/login"); 
       }, 0);
     } catch (err) {
       console.log(err);

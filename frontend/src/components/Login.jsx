@@ -69,6 +69,7 @@ const Login = () => {
 
       if (response.status < 400) {
         setUser(response.data?.user);
+        localStorage.setItem("accessToken", response.data?.accessToken);
         navigate(`../${role}`);
       }
     } catch (err) {

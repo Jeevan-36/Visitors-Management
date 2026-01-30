@@ -27,10 +27,9 @@ export const verifyGuard = async (req, res, next) => {
         req.user=user;
         next();
   } catch (error) {
-    next(error);
-      // res.status(error.statuscode || 500).json({
-      //   message:error.message||"Error in verifying User"
-      // })
+      res.status(error.statuscode || 500).json({
+        message:error.message||"Error in verifying User"
+      })
   }
 
     

@@ -113,7 +113,10 @@ sameSite: "none",
     res.
     cookie("accessToken",accessToken,options).
     cookie("refreshToken",refreshToken,options).
-    status(200).json({ user: userDetails });
+    status(200).json({ 
+      user: userDetails, 
+      accessToken: accessToken // ADD THIS LINE
+   });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Manager" });
   }

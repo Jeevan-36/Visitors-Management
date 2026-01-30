@@ -343,7 +343,7 @@ export const loginAsGuest = asyncHandler(async (req, res) => {
    }
     res.status(200).cookie("accessToken",response.accessToken,options).
     cookie("refreshToken",response.refreshToken,options).
-    json({ user: response.userDetails });
+    json({ user: response.userDetails,accessToken: response.accessToken });
   
   } catch (error) {
      res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Guard" });

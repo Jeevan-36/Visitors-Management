@@ -44,6 +44,26 @@ app.get('/flat-numbers',getFlatNumbers);
 app.put('/update-profile',verifyUser,updateProfile);
 app.put('/change-password',verifyUser,updatePassword);
 app.post('/login-guest',loginAsGuest);
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+    // Log the full error to your Render dashboard logs
+    console.error("DEBUG ERROR LOG:", {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        cookies: req.cookies // Check if cookies are actually arriving
+    });
+
+    const statusCode = err.statusCode || 500;
+    
+    res.status(statusCode).json({
+        success: false,
+        message: err.message || "Internal Server Error",
+        // Only show stack trace in development mode
+        stack: process.env.NODE_ENV === "development" ? err.stack : "🥞"
+    });
+});
 export {
     app
 }

@@ -29,9 +29,10 @@ export const verifyResident = asyncHandler( async (req, res, next) => {
     next();
 
   } catch (error) {
-      res.status(error.statuscode || 500).json({
-        message:error.message||"Error in verifying User"
-      })
+    next(error);
+      // res.status(error.statuscode || 500).json({
+      //   message:error.message||"Error in verifying User"
+      // })
   }
 
     

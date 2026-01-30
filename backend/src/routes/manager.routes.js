@@ -12,5 +12,5 @@ router.route("/deactivate-resident").put(verifyManager,deactivateResident);
 router.route("/deactivate-guard").put(verifyManager,deactivateGuard);
 router.route("/residents-details").get(verifyManager,getResidentDetails);
 router.route("/guards-details").get(verifyManager,getGuardDetails);
-router.route("/search-log").post(verifyManager,getVisitsOnFilter)
+router.route("/search-log").post(verifyManager,getVisitsOnFilter);
 export default router;

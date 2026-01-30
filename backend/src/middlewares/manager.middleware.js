@@ -24,8 +24,9 @@ export const verifyManager = async (req, res, next) => {
         req.user=user;
         next();
   } catch (error) {
-      res.status(error.statuscode || 500).json({
-        message:error.message||"Error in verifying User"
-      })
+    next(error);
+      // res.status(error.statuscode || 500).json({
+      //   message:error.message||"Error in verifying User"
+      // })
   }
 };

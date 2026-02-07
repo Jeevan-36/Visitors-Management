@@ -4,283 +4,146 @@ import { User } from "../models/user.models.js";
 import { Visit } from "../models/visit.model.js";
 import { io } from "../index.js";
 
-const loginResident = asyncHandler(async (req, res) => {
-  try {
-   
-    const { phoneNo, password, role } = req.body;
-    if (!phoneNo || !password || !role) {
-      throw new ApiError(400, "Please provide all fields");
-    }
-    const user = await User.findOne({ phoneNo, role }).select("+password");
-    if (!user) {
-      throw new ApiError(404, "Resident not found");
-    }
-    const isPasswordValid = await user.isPasswordCorrect(password);
-    if (!isPasswordValid) {
-      throw new ApiError(401, "Invalid password");
-    }
-    
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
-    console.log(accessToken);
-    user.refreshToken=refreshToken;
-    await user.save();
-   const userDetails = await User.findOne({ phoneNo, role: "resident" }).select("-refreshToken");
-   const options={
-    httpOnly:true,
-     secure: true, 
-sameSite: "none",  
-   }
-    res.
-    cookie("accessToken",accessToken,options).
-    cookie("refreshToken",refreshToken,options).
-    status(200).json({ 
-      user: userDetails, 
-      accessToken: accessToken // ADD THIS LINE
-   });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Resident" });
-  }
-});
-
-const getPendingApprovals=asyncHandler(async(req,res)=>{
-  try {
-    const {flatNo}=req.body;
-    if(!flatNo){
-      throw new ApiError(400,"Please provide all fields");
-      }
-      const visitDetails=await Visit.find(
-        {
-          status:"Pending"
-          }
-      ).populate('visitor').populate('resident')
-      if(!visitDetails){
-        throw new ApiError(404,"No pending visits found");
-        }
-        const filteredVisits=visitDetails.filter(visit=>visit.resident.flatNo===flatNo)
-        res.status(200).json(
-          {
-            pendingVisits:filteredVisits
-            }
-        )
-  } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while fetching pending approvals by Resident"});
-  }
-}
-);
-
-const approveVisitor=asyncHandler(async(req,res)=>{
-  try {
-     const {_id}=req.body;
-     console.log(_id);
-     if(!_id){
-      throw new ApiError(500,"some error occurred while approving visitor");
-      }
-      const visitDetails=await Visit.findById(
-        {
-          _id
-          }
-      )
-      if(!visitDetails){
-        throw new ApiError(404,"Visit not found");
-        }
-      if(visitDetails.status==='Exited' ){
-        throw new ApiError(400,"Visitor has already exited ");
-      }
-      if(visitDetails.status==='Approved'){
-        throw new ApiError(400,"Visitor has already been approved");
-      }
-      const {approvedGuardId}=visitDetails;
-      const guard=await User.findOne({_id:approvedGuardId,role:'guard'});
-      const employeeId=guard.employeeId;
-        visitDetails.status="Approved";
-       const updatedVisit = await visitDetails.save(
-        { new: true }
-       );
-        io.to(employeeId).emit("resident-response",{ updatedVisit
-        });
-        res.status(200).json(
-          {
-            updatedVisit
-            }
-        )
-  } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while approving visitor by Resident"});
-  }
-})
-
-const denyVisitor = asyncHandler(async (req, res) => {
-  try {
-    const { _id } = req.body;
-
-    if (!_id) {
-      throw new ApiError(400, "Visit ID is required");
-    }
-
-    const visitDetails = await Visit.findById(_id);
-    if (!visitDetails) {
-      throw new ApiError(404, "Visit not found");
-    }
-
-    if (visitDetails.status === "Exited") {
-      throw new ApiError(400, "Visitor has already exited");
-    }
-
-    if (visitDetails.status === "Denied") {
-      throw new ApiError(400, "Visitor has already been denied");
-    }
-
- 
-    const { approvedGuardId } = visitDetails;
-    const guard = await User.findOne({ _id: approvedGuardId, role: "guard" });
-
-    if (!guard) {
-      throw new ApiError(404, "Guard not found");
-    }
-
-    const employeeId = guard.employeeId;
-
-    visitDetails.status = "Denied";
-     const updatedVisit = await visitDetails.save({
-      new: true,
-     });
-
-
-    io.to(employeeId).emit("resident-response", {
-      updatedVisit,
-    });
-
-    res.status(200).json({ updatedVisit });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message || "Error while denying visitor by Resident",
-    });
-  }
-});
-
-
-
-const getResidentVisitorsCount = async (req, res) => {
-  try {
-    const { flatNo } = req.body;
-
-    const matchStage = [];
-    if (flatNo) {
-      const residentLookup = [
-        {
-          $lookup: {
-            from: "users",
-            localField: "resident",
-            foreignField: "_id",
-            as: "residentDetails"
-          }
-        },
-        { $unwind: "$residentDetails" },
-        { $match: { "residentDetails.flatNo": flatNo } }
-      ];
-      matchStage.push(...residentLookup);
-    }
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const pipeline = [
-      ...matchStage,
-      {
-        $facet: {
-          statusCounts: [
-            { $group: { _id: "$status", count: { $sum: 1 } } }
-          ],
-          todayCount: [
-            { $match: { createdAt: { $gte: todayStart, $lt: todayEnd } } },
-            { $count: "count" }
-          ]
-        }
-      }
-    ];
-
-    const results = await Visit.aggregate(pipeline);
-
-    const summary = {
-      activeVisitors: 0,      // 👈 matches frontend state
-      pendingVisitors: 0,
-      exitedVisitors: 0
-    };
-
-    if (results[0]) {
-      results[0].statusCounts.forEach(item => {
-        if (item._id === "Active" || item._id === "Approved")
-          summary.activeVisitors += item.count;
-        if (item._id === "Pending") summary.pendingVisitors = item.count;
-        if (item._id === "Exited") summary.exitedVisitors = item.count;
-      });
-    }
-
-    res.status(200).json(summary);
-  } catch (error) {
-    console.error("Error in getVisitorCounts:", error);
-    res.status(500).json({ message: "Error fetching visitor counts", error: error.message });
-  }
-};
-//get latest modified details
-const getResidentRecentActivity = async (req, res) => {
-  try {
-    const { flatNo } = req.body;
-    if (!flatNo) {
-      return res.status(400).json({ message: "flatNo is required" });
-    }
-
-    const recentActivity = await Visit.aggregate([
-      // 1. Filter by flatNo directly (much faster)
-      { $match: { flatNo: flatNo } },
-
-      // 2. Sort by newest entries
-      { $sort: { createdAt: -1 } },
-
-      // 3. Limit to the latest 5
-      { $limit: 10 },
-
-      // 4. Join with the Visitor collection
-      {
-        $lookup: {
-          from: "visitors",
-          localField: "visitor",
-          foreignField: "_id",
-          as: "visitorData"
-        }
-      },
-
-      // 5. Flatten the visitor array
-      { $unwind: "$visitorData" },
-
-      // 6. Project specific paths to avoid "name" collision
-      {
-        $project: {
-          _id: 0,
-          name: "$visitorData.name", // Force extraction from Visitor collection
-          purpose: 1,
-          status: 1,
-          time: "$createdAt"
-        }
-      }
-    ]);
-
-    const formattedActivity = recentActivity.map(visit => ({
-      ...visit,
-      time: visit.time 
-        ? new Date(visit.time).toLocaleString("en-IN", {
-            dateStyle: "short",
-            timeStyle: "short",
-          }) 
-        : "N/A"
-    }));
-
-    res.status(200).json(formattedActivity);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
 };
 
-export { loginResident ,getPendingApprovals,approveVisitor,denyVisitor,getResidentRecentActivity,getResidentVisitorsCount};
+export const loginResident = asyncHandler(async (req, res) => {
+  const { phoneNo, password, role } = req.body;
+
+  if (!phoneNo || !password || !role) {
+    throw new ApiError(400, "Please provide all fields");
+  }
+
+  const user = await User.findOne({ phoneNo, role }).select("+password");
+  if (!user) throw new ApiError(404, "Resident not found");
+
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) throw new ApiError(401, "Invalid password");
+
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  const userDetails = await User.findById(user._id).select("-password -refreshToken");
+
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+    .json({
+      user: userDetails,
+      accessToken
+    });
+});
+
+export const getPendingApprovals = asyncHandler(async (req, res) => {
+  const { flatNo } = req.body;
+  if (!flatNo) throw new ApiError(400, "Flat number is required");
+
+  
+  const pendingVisits = await Visit.find({
+    status: "Pending",
+    flatNo: flatNo
+  }).populate('visitor', 'name phoneNo');
+
+  res.status(200).json({ pendingVisits });
+});
+
+export const approveVisitor = asyncHandler(async (req, res) => {
+  const { _id } = req.body;
+  if (!_id) throw new ApiError(400, "Visit ID is required");
+
+  const visit = await Visit.findById(_id).populate('approvedGuardId');
+  if (!visit) throw new ApiError(404, "Visit not found");
+
+  if (["Exited", "Approved"].includes(visit.status)) {
+    throw new ApiError(400, `Visitor already ${visit.status.toLowerCase()}`);
+  }
+
+  visit.status = "Approved";
+  const updatedVisit = await visit.save();
+
+  
+  if (visit.approvedGuardId?.employeeId) {
+    io.to(visit.approvedGuardId.employeeId).emit("resident-response", { updatedVisit });
+  }
+
+  res.status(200).json({ updatedVisit });
+});
+
+export const denyVisitor = asyncHandler(async (req, res) => {
+  const { _id } = req.body;
+  if (!_id) throw new ApiError(400, "Visit ID is required");
+
+  const visit = await Visit.findById(_id).populate('approvedGuardId');
+  if (!visit) throw new ApiError(404, "Visit not found");
+
+  if (["Exited", "Denied"].includes(visit.status)) {
+    throw new ApiError(400, `Visitor already ${visit.status.toLowerCase()}`);
+  }
+
+  visit.status = "Denied";
+  const updatedVisit = await visit.save();
+
+  if (visit.approvedGuardId?.employeeId) {
+    io.to(visit.approvedGuardId.employeeId).emit("resident-response", { updatedVisit });
+  }
+
+  res.status(200).json({ updatedVisit });
+});
+
+export const getResidentVisitorsCount = asyncHandler(async (req, res) => {
+  const { flatNo } = req.body;
+  if (!flatNo) throw new ApiError(400, "Flat number is required");
+
+  const results = await Visit.aggregate([
+    { $match: { flatNo: flatNo } },
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const summary = {
+    activeVisitors: 0,
+    pendingVisitors: 0,
+    exitedVisitors: 0
+  };
+
+  results.forEach(item => {
+    if (item._id === "Approved") summary.activeVisitors = item.count;
+    if (item._id === "Pending") summary.pendingVisitors = item.count;
+    if (item._id === "Exited") summary.exitedVisitors = item.count;
+  });
+
+  res.status(200).json(summary);
+});
+
+export const getResidentRecentActivity = asyncHandler(async (req, res) => {
+  const { flatNo } = req.body;
+  if (!flatNo) throw new ApiError(400, "Flat number is required");
+
+  const recentActivity = await Visit.find({ flatNo })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .populate('visitor', 'name');
+
+  const formattedActivity = recentActivity.map(visit => ({
+    name: visit.visitor?.name || "Unknown",
+    purpose: visit.purpose,
+    status: visit.status,
+    time: visit.createdAt ? new Date(visit.createdAt).toLocaleString("en-IN", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }) : "N/A"
+  }));
+
+  res.status(200).json(formattedActivity);
+});

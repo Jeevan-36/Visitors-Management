@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import { Flat } from "../models/flat.model.js"; // adjust path if needed
+import { Flat } from "../models/flat.model.js"; 
 
 dotenv.config();
 
@@ -21,12 +21,12 @@ const seedFlats = async () => {
 
     await Flat.insertMany(flats, { ordered: false });
 
-    console.log("✅ Flats seeded successfully");
+    console.log(" Flats seeded successfully");
   } catch (error) { 
     if (error.code === 11000) {
-      console.log("⚠️ Some flats already exist, skipped duplicates");
+      console.log(" Some flats already exist, skipped duplicates");
     } else {
-      console.error("❌ Error while seeding flats:", error.message);
+      console.error(" Error while seeding flats:", error.message);
     }
   } finally {
     await mongoose.disconnect();

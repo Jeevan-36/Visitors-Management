@@ -1,10 +1,11 @@
 import { UserContextProvider } from "./context/UserContextProvider";
-import { Outlet, Link } from "react-router-dom";
+import { Outlet } from "react-router-dom";
+
 const App = () => {
   return (
     <UserContextProvider>
-      <div className="w-full max-h-screen">
-        <Outlet></Outlet>
+      <div className="w-full min-h-screen">
+        <Outlet />
       </div>
     </UserContextProvider>
   );

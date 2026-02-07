@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios.js";
 import { useUser } from "../../context/UserContextProvider";
+
 const AddVisitorModal = ({ isOpen, onClose }) => {
   const [visitorName, setVisitorName] = useState("");
-  // We initialize this as empty and set it once flatList is loaded
   const [hostResidentFlat, setHostResidentFlat] = useState("");
   const [purpose, setPurpose] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -11,12 +11,12 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
   const [otp, setOtp] = useState("");
   const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [error, setError] = useState("");
-  const { user } = useUser();
-  const { employeeId } = user;
-  // New state for the fetched list
+  const [isLoading, setIsLoading] = useState(false);
   const [flatList, setFlatList] = useState([]);
 
-  // Fetch flats on component mount
+  const { user } = useUser();
+  const { employeeId } = user;
+
   useEffect(() => {
     const getFlatList = async () => {
       try {
@@ -25,19 +25,13 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
         });
         const flats = response.data?.flatNumbers || [];
         setFlatList(flats);
-
-        // Automatically select the first flat as default if available
-        if (flats.length > 0) {
-          setHostResidentFlat(flats[0]);
-        }
+        if (flats.length > 0) setHostResidentFlat(flats[0]);
       } catch (err) {
-        console.error("Failed to fetch flats:", err);
+        // Error handled silently
       }
     };
 
-    if (isOpen) {
-      getFlatList();
-    }
+    if (isOpen) getFlatList();
   }, [isOpen]);
 
   const handleClose = () => {
@@ -53,6 +47,7 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
   };
 
   const triggerEmailOtp = async () => {
+    setIsLoading(true);
     try {
       await api.post(
         "/guard/send-email-otp",
@@ -60,30 +55,16 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
         { withCredentials: true },
       );
       setShowOtpScreen(true);
+      setError("");
     } catch {
       setError("Failed to send OTP to email.");
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      setError("Enter a valid 6-digit OTP.");
-      return;
-    }
-
-    try {
-      await api.post(
-        "/guard/verify-email-otp",
-        { email, otp },
-        { withCredentials: true },
-      );
-      await submitMarkEntry();
-    } catch {
-      setError("Invalid OTP. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const submitMarkEntry = async () => {
+    setIsLoading(true);
     const visitorData = {
       name: visitorName,
       flatNo: hostResidentFlat,
@@ -100,17 +81,33 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       if (response.status < 400) handleClose();
     } catch (error) {
       setError(error.message || "Failed to mark entry.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      setError("Enter a valid 6-digit OTP.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await api.post(
+        "/guard/verify-email-otp",
+        { email, otp },
+        { withCredentials: true },
+      );
+      await submitMarkEntry();
+    } catch {
+      setError("Invalid OTP. Try again.");
+      setIsLoading(false);
     }
   };
 
   const handleAddVisitor = async () => {
-    if (
-      !visitorName ||
-      !hostResidentFlat ||
-      !purpose ||
-      !phoneNumber ||
-      !email
-    ) {
+    if (!visitorName || !hostResidentFlat || !purpose || !phoneNumber || !email) {
       setError("All fields are mandatory.");
       return;
     }
@@ -120,6 +117,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    setIsLoading(true);
+    setError("");
     try {
       const response = await api.post(
         "/guard/check-visitor",
@@ -134,21 +133,23 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
       }
     } catch {
       setError("Verification failed.");
+      setIsLoading(false);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-      <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md shadow-2xl border border-gray-700">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-gray-700">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-white">
             {showOtpScreen ? "Verify OTP" : "Add New Visitor"}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-white"
+            disabled={isLoading}
+            className="text-gray-400 hover:text-white transition-colors"
           >
             ✕
           </button>
@@ -156,72 +157,62 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
 
         {!showOtpScreen ? (
           <div className="space-y-4">
-            <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">
-                Visitor Name
-              </label>
-              <input
-                placeholder="Full Name"
-                className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
-                value={visitorName}
-                onChange={(e) => setVisitorName(e.target.value)}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider">Visitor Name</label>
+                <input
+                  disabled={isLoading}
+                  placeholder="Full Name"
+                  className="w-full bg-gray-700 border-2 border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                  value={visitorName}
+                  onChange={(e) => setVisitorName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-gray-400 text-xs font-bold uppercase tracking-wider">Flat No</label>
+                <select
+                  disabled={isLoading}
+                  className="w-full bg-gray-700 border-2 border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                  value={hostResidentFlat}
+                  onChange={(e) => setHostResidentFlat(e.target.value)}
+                >
+                  {flatList.map((flat) => (
+                    <option key={flat} value={flat}>{flat}</option>
+                  ))}
+                  {flatList.length === 0 && <option disabled>Loading...</option>}
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">
-                Flat No
-              </label>
-              <select
-                className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white max-h-40 overflow-y-auto"
-                value={hostResidentFlat}
-                onChange={(e) => setHostResidentFlat(e.target.value)}
-              >
-                {/* Dynamically render options from flatList */}
-                {flatList.length > 0 ? (
-                  flatList.map((flat) => (
-                    <option key={flat} value={flat}>
-                      {flat}
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>Loading flats...</option>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">
-                Purpose
-              </label>
+            <div className="space-y-1">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider">Purpose</label>
               <input
+                disabled={isLoading}
                 placeholder="Delivery, Guest, etc."
-                className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
+                className="w-full bg-gray-700 border-2 border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
               />
             </div>
 
-            <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">
-                Phone Number
-              </label>
+            <div className="space-y-1">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider">Phone Number</label>
               <input
+                disabled={isLoading}
                 placeholder="10 digit number"
-                className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
+                className="w-full bg-gray-700 border-2 border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
             </div>
 
-            <div>
-              <label className="block text-gray-300 text-sm font-bold mb-2">
-                Email
-              </label>
+            <div className="space-y-1">
+              <label className="text-gray-400 text-xs font-bold uppercase tracking-wider">Email</label>
               <input
                 type="email"
+                disabled={isLoading}
                 placeholder="example@email.com"
-                className="shadow border-2 border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-white"
+                className="w-full bg-gray-700 border-2 border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-blue-500 outline-none"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -232,12 +223,13 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
             <p className="text-gray-300 text-sm">
               Enter the 6-digit OTP sent to
               <br />
-              <span className="text-blue-400 font-mono">{email}</span>
+              <span className="text-blue-400 font-mono text-xs">{email}</span>
             </p>
             <input
+              disabled={isLoading}
               placeholder="000000"
               maxLength="6"
-              className="w-full bg-gray-700 border-2 border-blue-500 rounded-lg p-3 text-center text-2xl tracking-[0.5em] text-white"
+              className="w-full bg-gray-700 border-2 border-blue-500 rounded-lg p-3 text-center text-2xl tracking-[0.5em] text-white outline-none"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
             />
@@ -245,23 +237,29 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
         )}
 
         {error && (
-          <p className="text-xs text-white text-center mt-4 bg-red-500 bg-opacity-10 p-2 rounded">
+          <div className="mt-4 bg-red-500/10 border border-red-500 text-red-500 text-[11px] p-2 rounded text-center">
             {error}
-          </p>
+          </div>
         )}
 
-        <div className="mt-8 flex justify-end space-x-4">
+        <div className="mt-8 flex flex-col sm:flex-row justify-end gap-3">
           <button
             onClick={handleClose}
-            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
+            disabled={isLoading}
+            className="order-2 sm:order-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleAddVisitor}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+            disabled={isLoading}
+            className="order-1 sm:order-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all shadow-lg shadow-blue-900/20 disabled:bg-blue-800 flex justify-center items-center min-w-[120px]"
           >
-            {showOtpScreen ? "Verify & Add" : "Continue"}
+            {isLoading ? (
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              showOtpScreen ? "Verify & Add" : "Continue"
+            )}
           </button>
         </div>
       </div>

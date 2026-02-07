@@ -1,11 +1,16 @@
-import { asyncHandler } from "../utils/asyncHandler.js"
-import {ApiError} from '../utils/ApiError.js'
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { Visit } from "../models/visit.model.js";
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+};
 
 const getNextEmployeeId = async () => {
   const lastGuard = await User.findOne({ role: "guard" })
-    .sort({ createdAt: -1 })
+    .sort({ employeeId: -1 }) // Sort by ID directly to find the highest
     .select("employeeId");
 
   if (!lastGuard || !lastGuard.employeeId) {
@@ -16,174 +21,119 @@ const getNextEmployeeId = async () => {
   return `G-${String(lastNum + 1).padStart(3, "0")}`;
 };
 
-const registerUser = asyncHandler(async (req, res) => {
-  try {
-    console.log(req.body);
-    const { name, phoneNo, email, password, role, flatNo } = req.body;
+export const registerUser = asyncHandler(async (req, res) => {
+  const { name, phoneNo, email, password, role, flatNo } = req.body;
 
-    if (!name || !phoneNo || !email || !password || !role) {
-      return res.status(400).json({ message: "Please fill in all fields." });
-    }
-    if (role === 'resident' && !flatNo) {
-      throw new ApiError(409, "resident must have flatNo");
-    }
-
-    if (phoneNo.length !== 10) {
-      throw new ApiError(409, "phoneNo must be 10 digits");
-    }
-    if(password.length<8){
-      throw new ApiError(409, "Password must be at least 8 characters long");
-    }
-const occupiedFlat = await User.findOne({ 
-  flatNo, 
-  role: 'resident' ,
-  isActive:true
-});
-
-if (occupiedFlat) {
-  throw new ApiError(
-    400, 
-    `Remove old resident of flatNo: ${flatNo} to add new Resident`
-  );
-}
-    const existingUser = await User.findOne({
-      $or: [{ phoneNo }]
-    });
-
-    if (existingUser ) {
-      throw new ApiError(400, 'User already exists');
-    }
-
-    const userData = {
-      name,
-      phoneNo,
-      email,
-      password,
-      role,
-    };
-
-    if (role === "resident") userData.flatNo = flatNo;
-    if (role === "guard") userData.employeeId = await getNextEmployeeId();
-
-    const user = await User.create(userData);
-
-    const createdUser = await User.findById(user._id).select("-refreshToken");
-    if (!createdUser) {
-      throw new ApiError(500, 'Error occurred while registering new User');
-    }
-
-    res.status(201).json({ message: "User created successfully", user: createdUser });
-
-  } catch (error) {
-    console.log(error);
-    res.status(error.statuscode || 500).json({ message: error.message || "Internal Server Error" });
+  if (!name || !phoneNo || !email || !password || !role) {
+    throw new ApiError(400, "All fields are required");
   }
+
+  if (role === 'resident' && !flatNo) {
+    throw new ApiError(400, "Residents must be assigned a flat number");
+  }
+
+  if (phoneNo.length !== 10) {
+    throw new ApiError(400, "Phone number must be exactly 10 digits");
+  }
+
+  if (role === 'resident') {
+    const occupiedFlat = await User.findOne({ flatNo, role: 'resident', isActive: true });
+    if (occupiedFlat) {
+      throw new ApiError(400, `Flat ${flatNo} is already occupied by an active resident`);
+    }
+  }
+
+  const existingUser = await User.findOne({ phoneNo });
+  if (existingUser) {
+    throw new ApiError(409, "User with this phone number already exists");
+  }
+
+  const userData = { name, phoneNo, email, password, role };
+
+  if (role === "resident") userData.flatNo = flatNo;
+  if (role === "guard") userData.employeeId = await getNextEmployeeId();
+
+  const user = await User.create(userData);
+  const createdUser = await User.findById(user._id).select("-password -refreshToken");
+
+  res.status(201).json({ 
+    success: true, 
+    message: "User registered successfully", 
+    user: createdUser 
+  });
 });
 
+export const loginManager = asyncHandler(async (req, res) => {
+  const { phoneNo, password } = req.body;
 
+  if (!phoneNo || !password) {
+    throw new ApiError(400, "Phone number and password are required");
+  }
 
-const loginManager = asyncHandler(async (req, res) => {
-  try {
-    const { phoneNo, password, role } = req.body;
-    console.log("reqe",req.body);
-    if (!phoneNo || !password || !role) {
-      throw new ApiError(400, "Please provide all fields");
-    }
-    const user = await User.findOne({ phoneNo, role: "manager" }).select("+password");
-    console.log("user",user);
-    if (!user) {
-      throw new ApiError(404, "Manager not found");
-    }
-    const isPasswordValid = await user.isPasswordCorrect(password);
-    if (!isPasswordValid) {
-      throw new ApiError(401, "Invalid password");
-    }
+  const user = await User.findOne({ phoneNo, role: "manager" }).select("+password");
+  if (!user || !(await user.isPasswordCorrect(password))) {
+    throw new ApiError(401, "Invalid manager credentials");
+  }
 
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
-    user.refreshToken=refreshToken
-    await user.save();
-   const userDetails = await User.findOne({ phoneNo, role: "manager" }).select("-refreshToken");
-   const options={
-    httpOnly:true,
-     secure: true, 
-sameSite: "none",
-   }
-   
-    res.
-    cookie("accessToken",accessToken,options).
-    cookie("refreshToken",refreshToken,options).
-    status(200).json({ 
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  user.refreshToken = refreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  const userDetails = await User.findById(user._id).select("-password -refreshToken");
+
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+    .json({ 
+      success: true,
       user: userDetails, 
-      accessToken: accessToken // ADD THIS LINE
-   });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ message: error.message || "Error while logging in Manager" });
-  }
+      accessToken 
+    });
 });
 
+export const deactivateResident = asyncHandler(async (req, res) => {
+  const { flatNo } = req.body;
+  if (!flatNo) throw new ApiError(400, "Flat number is required");
 
-const deactivateResident=asyncHandler(async(req,res)=>{
-  try {
-    const { flatNo } = req.body;
-    if (!flatNo) {
-      throw new ApiError(400, "Please provide FlatNo to deactivate Resident");
-    }
-    const resident = await User.findOne({ flatNo, role: "resident", isActive: true });
-    if (!resident) {
-      throw new ApiError(404, "Active Resident not found for the provided FlatNo");
-    } 
-    resident.isActive = false;
-    await resident.save();
-    res.status(200).json({ message: `Resident of FlatNo: ${flatNo} has been deactivated successfully.` });
-  } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while deactivating Resident" });
-  }
+  const resident = await User.findOneAndUpdate(
+    { flatNo, role: "resident", isActive: true },
+    { $set: { isActive: false } },
+    { new: true }
+  );
+
+  if (!resident) throw new ApiError(404, "No active resident found for this flat");
+
+  res.status(200).json({ message: `Resident of Flat ${flatNo} deactivated` });
 });
 
-const deactivateGuard=asyncHandler(async(req,res)=>{
-  try {
-    const { employeeId } = req.body;  
-    if (!employeeId) {
-      throw new ApiError(400, "Please provide EmployeeId to deactivate Guard");
-    }
-    const guard = await User.findOne({ employeeId, role: "guard", isActive: true });
-    if (!guard) {
-      throw new ApiError(404, "Active Guard not found for the provided EmployeeId");
-    }
-    guard.isActive = false;
-    await guard.save();
-    res.status(200).json({ message: `Guard with EmployeeId: ${employeeId} has been deactivated successfully.` });
-  } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while deactivating Guard" });
-  }
+export const deactivateGuard = asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+  if (!employeeId) throw new ApiError(400, "Employee ID is required");
+
+  const guard = await User.findOneAndUpdate(
+    { employeeId, role: "guard", isActive: true },
+    { $set: { isActive: false } },
+    { new: true }
+  );
+
+  if (!guard) throw new ApiError(404, "No active guard found with this ID");
+
+  res.status(200).json({ message: `Guard ${employeeId} deactivated` });
 });
 
-const getResidentDetails=asyncHandler(async(req,res)=>{
-  try {
-    const residents= await User.find({ role: "resident" }).select(" +flatNo +phoneNo  +name +isActive");
-    res.status(200).json({ residents });
-  } catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while fetching Resident details" });
-  }
+export const getResidentDetails = asyncHandler(async (req, res) => {
+  const residents = await User.find({ role: "resident" })
+    .select("name flatNo phoneNo isActive")
+    .sort({ flatNo: 1 });
+  res.status(200).json({ residents });
 });
 
-const getGuardDetails=asyncHandler(async(req,res)=>{
-  try {
-    const guards= await User.find({ role: "guard"}).select(" +employeeId +phoneNo  +name +isActive");
-    res.status(200).json({ guards });
-  }
-  catch (error) {
-    res.status(error.statuscode || 500).json({ message: error.message || "Error while fetching Guard details" });
-  }
+export const getGuardDetails = asyncHandler(async (req, res) => {
+  const guards = await User.find({ role: "guard" })
+    .select("name employeeId phoneNo isActive")
+    .sort({ employeeId: 1 });
+  res.status(200).json({ guards });
 });
-
-export {
-  registerUser,
-  loginManager,
-  deactivateResident,
-  deactivateGuard,
-  getResidentDetails,
-  getGuardDetails
- 
-}

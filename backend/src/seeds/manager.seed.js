@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { User } from '../models/user.models.js'; // Adjust path if needed
+import { User } from '../models/user.models.js';
 
 dotenv.config();
-// for initial manger account creation
+
 const seedManager = async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URI}`);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios.js'
+import api from '../../api/axios.js';
 
 const ManagerReports = () => {
   const [phoneNo, setPhoneNo] = useState('');
@@ -8,7 +8,7 @@ const ManagerReports = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [visits, setVisits] = useState([]);
-  const [flatList, setFlatList] = useState([]); 
+  const [flatList, setFlatList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
@@ -26,7 +26,7 @@ const ManagerReports = () => {
         const response = await api.get("/flat-numbers", { withCredentials: true });
         setFlatList(response.data?.flatNumbers || []);
       } catch (err) {
-        console.error("Failed to fetch flats:", err);
+        // Error handled silently
       }
     };
     getFlatList();
@@ -39,7 +39,7 @@ const ManagerReports = () => {
     setHasSearched(true);
 
     const filterParameters = { phoneNo, flatNo, status, startDate, endDate };
-    
+
     try {
       const response = await api.post('/manager/search-log', filterParameters, {
         withCredentials: true
@@ -54,46 +54,47 @@ const ManagerReports = () => {
       } else {
         setError(err.response?.data?.message || "A network error occurred.");
       }
-      console.error("Filter request failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-gray-900 min-h-screen text-white p-6 font-sans">
-      <h1 className="text-3xl font-bold mb-6">Visitor Reports</h1>
-      
-      {/* --- Filter Bar --- */}
-      <div className="bg-gray-800 rounded-md p-4 mb-6 border border-gray-700 shadow-xl">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
-            <input 
-              type="tel" 
-              value={phoneNo} 
-              onChange={(e) => setPhoneNo(e.target.value)} 
-              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 outline-none focus:border-blue-500" 
+    <div className="bg-gray-900 min-h-screen text-white p-4 md:p-6 font-sans">
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">Visitor Reports</h1>
+
+      <div className="bg-gray-800 rounded-md p-4 md:p-6 mb-6 border border-gray-700 shadow-xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-400">Phone Number</label>
+            <input
+              type="tel"
+              value={phoneNo}
+              onChange={(e) => setPhoneNo(e.target.value)}
+              disabled={loading}
+              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               placeholder="Search Visitor..."
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Flat Number</label>
-            <select 
-              value={flatNo} 
-              onChange={(e) => setFlatNo(e.target.value)} 
-              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 outline-none focus:border-blue-500"
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-400">Flat Number</label>
+            <select
+              value={flatNo}
+              onChange={(e) => setFlatNo(e.target.value)}
+              disabled={loading}
+              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             >
               <option value="">All Flats</option>
               {flatList.map((flat) => (<option key={flat} value={flat}>{flat}</option>))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
-            <select 
-              value={status} 
-              onChange={(e) => setStatus(e.target.value)} 
-              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 outline-none focus:border-blue-500"
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-400">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              disabled={loading}
+              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             >
               <option value="">All Statuses</option>
               <option value="Pending">Pending</option>
@@ -102,72 +103,97 @@ const ManagerReports = () => {
               <option value="Denied">Denied</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 outline-none focus:border-blue-500" />
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-400">Start Date</label>
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              disabled={loading}
+              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+            />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 outline-none focus:border-blue-500" />
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-400">End Date</label>
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              disabled={loading}
+              className="w-full bg-gray-700 text-white rounded-md border border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" 
+            />
           </div>
           <button
             onClick={handleApplyFilters}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md h-10 transition-colors disabled:bg-gray-600"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md h-[38px] transition-all disabled:bg-gray-600 flex justify-center items-center shadow-lg shadow-blue-900/20"
           >
-            {loading ? 'Searching...' : 'Search'}
+            {loading ? (
+              <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : 'Search'}
           </button>
         </div>
       </div>
-      
+
       {error && (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-md mb-6">
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-md mb-6 text-sm">
           {error}
         </div>
       )}
 
-      {/* --- Results Table --- */}
       <div className="bg-gray-800 rounded-md overflow-hidden border border-gray-700 shadow-2xl">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
           <table className="min-w-full text-sm text-left text-gray-400">
             <thead className="text-xs text-gray-500 uppercase bg-gray-900 border-b border-gray-700">
               <tr>
-                <th className="py-3 px-6">Visitor Name</th>
-                <th className="py-3 px-6">Phone</th>
-                <th className="py-3 px-6">Flat No</th>
-                <th className="py-3 px-6">Purpose</th>
-                <th className="py-3 px-6">Entry Time</th>
-                <th className="py-3 px-6">Exit Time</th>
-                <th className="py-3 px-6">Status</th>
+                <th className="py-3 px-4 md:px-6">Visitor</th>
+                <th className="py-3 px-4 md:px-6 hidden md:table-cell">Phone</th>
+                <th className="py-3 px-4 md:px-6">Flat</th>
+                <th className="py-3 px-4 md:px-6 hidden sm:table-cell">Purpose</th>
+                <th className="py-3 px-4 md:px-6">Entry</th>
+                <th className="py-3 px-4 md:px-6 hidden lg:table-cell">Exit</th>
+                <th className="py-3 px-4 md:px-6 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" className="text-center py-10 italic">Loading results...</td></tr>
+                <tr><td colSpan="7" className="text-center py-10 italic text-gray-500">Loading results...</td></tr>
               ) : visits.length > 0 ? (
                 visits.map((visit) => (
-                  <tr key={visit._id} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
-                    <td className="py-4 px-6 font-medium text-white">{visit.visitor?.name}</td>
-                    <td className="py-4 px-6">{visit.visitor?.phoneNo}</td>
-                    <td className="py-4 px-6 font-mono text-blue-400">{visit.flatNo}</td>
-                    <td className="py-4 px-6">{visit.purpose}</td>
-                    <td className="py-4 px-6 text-xs">{new Date(visit.entryTime).toLocaleString()}</td>
-                    <td className="py-4 px-6 text-xs">
-                      {visit.exitTime ? new Date(visit.exitTime).toLocaleString() : (statusConfig[visit.status]?.exitText || 'N/A')}
+                  <tr key={visit._id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                    <td className="py-4 px-4 md:px-6 font-medium text-white whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span>{visit.visitor?.name}</span>
+                        <span className="md:hidden text-[10px] text-gray-500 font-normal">{visit.visitor?.phoneNo}</span>
+                      </div>
                     </td>
-                    <td className="py-4 px-6">
-                      {/* Fixed width 'w-24' and 'justify-center' applied here */}
-                      <span className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[10px] font-bold  ${
-                        statusConfig[visit.status]?.styles || 'bg-gray-800 text-gray-400 border-gray-600'
+                    <td className="py-4 px-4 md:px-6 hidden md:table-cell">{visit.visitor?.phoneNo}</td>
+                    <td className="py-4 px-4 md:px-6 font-mono text-blue-400">{visit.flatNo}</td>
+                    <td className="py-4 px-4 md:px-6 hidden sm:table-cell truncate max-w-[150px]">{visit.purpose}</td>
+                    <td className="py-4 px-4 md:px-6 text-[10px] md:text-xs">
+                      {new Date(visit.entryTime).toLocaleDateString()}<br/>
+                      {new Date(visit.entryTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </td>
+                    <td className="py-4 px-4 md:px-6 text-[10px] md:text-xs hidden lg:table-cell">
+                      {visit.exitTime ? (
+                        <>
+                          {new Date(visit.exitTime).toLocaleDateString()}<br/>
+                          {new Date(visit.exitTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </>
+                      ) : (statusConfig[visit.status]?.exitText || 'N/A')}
+                    </td>
+                    <td className="py-4 px-4 md:px-6 text-center">
+                      <span className={`inline-flex items-center justify-center min-w-[80px] md:w-24 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase ${
+                        statusConfig[visit.status]?.styles || 'bg-gray-800 text-gray-400'
                       }`}>
-                        {visit.status.toUpperCase()}
+                        {visit.status}
                       </span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-10 text-gray-500 italic">
+                  <td colSpan="7" className="text-center py-10 text-gray-500 italic text-sm">
                     {hasSearched ? "No visits found matching your criteria." : "Select filters and click Search to view records."}
                   </td>
                 </tr>

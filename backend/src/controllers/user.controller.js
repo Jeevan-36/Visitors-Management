@@ -134,12 +134,18 @@ console.log("OTP STORED:", req.session.emailOtp);
   req.session.emailOtpExpiry = Date.now() + 5 * 60 * 1000;
   req.session.emailVerified = false;
 
-  await transporter.sendMail({
+  try {
+  const info = await transporter.sendMail({
     from: `"Gate Security" <${process.env.EMAIL}>`,
     to: email,
     subject: "Visitor OTP Verification",
     html: `<h1>${otp}</h1><p>Your OTP for building entry. Valid for 5 minutes.</p>`
   });
+
+  console.log("Mail sent:", info);
+} catch (err) {
+  console.error("Mail error:", err);
+}
 
   res.json({ success: true });
 });

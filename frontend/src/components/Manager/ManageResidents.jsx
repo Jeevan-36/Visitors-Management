@@ -51,7 +51,7 @@ const ResidentModal = ({ isOpen, onClose, onSave, flatList }) => {
         <div className="space-y-4">
           <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
           <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Email (Optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <input type="password" className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <select className="w-full bg-gray-700 text-white px-3 py-2 rounded border border-gray-600 outline-none text-sm" value={flatNo} onChange={(e) => setFlatNo(e.target.value)}>
             <option value="">Select Flat</option>

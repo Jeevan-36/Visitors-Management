@@ -13,7 +13,6 @@ const MarkExitModal = ({ isOpen, onClose }) => {
       setError('Phone number must be exactly 10 digits.');
       return;
     }
-    
     setError('');
     setIsLoading(true);
 

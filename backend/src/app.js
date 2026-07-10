@@ -35,17 +35,15 @@ app.use(cookieParser());
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "defaultsecret",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, 
-      sameSite: 'none',
-      maxAge: 10 * 60 * 1000
-    }
+      secure: false,
+      httpOnly: true,
+    },
   })
 );
-
 app.use('/guard', guardRouter);
 app.use('/manager', managerRouter);
 app.use('/resident', residentRouter);

@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { Visit } from "../models/visit.model.js";
 import { Flat } from "../models/flat.model.js";
+import dotenv from "dotenv";
+dotenv.config();
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -120,11 +122,15 @@ export const getVisitsOnFilter = asyncHandler(async (req, res) => {
 
 export const sendEmailOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
+  console.log("EMAIL:", process.env.EMAIL);
+console.log("EMAIL_PASSWORD:", process.env.EMAIL_PASSWORD);
   if (!email) throw new ApiError(400, "Email is required");
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+console.log("SEND SID:", req.sessionID);
 
-  req.session.emailOtp = otp;
+req.session.emailOtp = otp;
+console.log("OTP STORED:", req.session.emailOtp);
   req.session.emailOtpExpiry = Date.now() + 5 * 60 * 1000;
   req.session.emailVerified = false;
 
@@ -140,7 +146,11 @@ export const sendEmailOtp = asyncHandler(async (req, res) => {
 
 export const verifyEmailOtp = asyncHandler(async (req, res) => {
   const { otp } = req.body;
-  if (!otp || req.session.emailOtp !== otp) throw new ApiError(400, "Invalid OTP");
+ console.log("VERIFY SID:", req.sessionID);
+console.log("OTP FOUND:", req.session.emailOtp);
+ if (!otp || String(req.session.emailOtp) !== String(otp)) {
+    throw new ApiError(400, "Invalid OTP");
+}
   if (Date.now() > req.session.emailOtpExpiry) throw new ApiError(400, "OTP expired");
 
   req.session.emailVerified = true;
@@ -173,7 +183,9 @@ export const updatePassword = asyncHandler(async (req, res) => {
 
 
 const performLogin = async (phoneNo, password, role) => {
+  console.log(password+" "+role);
   const user = await User.findOne({ phoneNo, role }).select("+password");
+  console.log("pl"+user);
   if (!user || !(await user.isPasswordCorrect(password))) {
     throw new ApiError(401, "Invalid credentials");
   }
@@ -192,6 +204,7 @@ const performLogin = async (phoneNo, password, role) => {
 
 export const loginAsGuest = asyncHandler(async (req, res) => {
   const { role } = req.body;
+  console.log(role);
   const guestCredentials = {
     manager: ["9000000001", "guest12345"],
     resident: ["9000000002", "guest12345"],

@@ -10,7 +10,7 @@ const COOKIE_OPTIONS = {
 
 const getNextEmployeeId = async () => {
   const lastGuard = await User.findOne({ role: "guard" })
-    .sort({ employeeId: -1 }) // Sort by ID directly to find the highest
+    .sort({ employeeId: -1 }) 
     .select("employeeId");
 
   if (!lastGuard || !lastGuard.employeeId) {

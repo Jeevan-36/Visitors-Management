@@ -37,7 +37,7 @@ const StatsSection = ({ isAddModalOpen, isExitModalOpen }) => {
           setRecentActivity(activityRes.data);
         }
       } catch (err) {
-        setError("Failed to sync dashboard data. Please try again later.");
+        setError(err.response?.data?.message || "Failed to sync dashboard data. Please try again later.");
       } finally {
         setIsLoading(false);
       }

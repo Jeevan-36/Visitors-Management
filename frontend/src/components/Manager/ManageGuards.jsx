@@ -94,7 +94,7 @@ const ManageGuards = () => {
         const ids = guards.map(g => g.employeeId).filter(Boolean);
         setGuardIdList([...new Set(ids)]);
       } catch (err) {
-        setError("Failed to fetch guards");
+        setError(err.response?.data?.message || "Failed to fetch guards");
       } finally {
         setIsLoading(false);
       }

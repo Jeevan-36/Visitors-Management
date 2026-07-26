@@ -100,8 +100,8 @@ const AddVisitorModal = ({ isOpen, onClose }) => {
         { withCredentials: true },
       );
       await submitMarkEntry();
-    } catch {
-      setError("Invalid OTP. Try again.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid OTP. Try again.");
       setIsLoading(false);
     }
   };

@@ -8,7 +8,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { useUser } from "../../context/UserContextProvider";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const socket = io(SOCKET_URL);
+const socket = io(SOCKET_URL, {
+  autoConnect: false,
+});
 
 const ResidentDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -22,6 +24,12 @@ const ResidentDashboard = () => {
   const { flatNo, name } = user;
 
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    socket.auth = { token };
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     socket.emit("join_room", flatNo);
 
     const fetchApprovals = async () => {

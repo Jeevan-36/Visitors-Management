@@ -3,9 +3,11 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
 import { Visit } from "../models/visit.model.js";
 import { Flat } from "../models/flat.model.js";
+import { Otp } from "../models/otp.model.js";
 import dotenv from "dotenv";
 dotenv.config();
 import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -80,6 +82,10 @@ export const getRecentVisitorActivity = asyncHandler(async (req, res) => {
 export const getVisitsOnFilter = asyncHandler(async (req, res) => {
   let { phoneNo, flatNo, status, startDate, endDate } = req.body;
 
+  if (req.user && req.user.role === 'resident') {
+    flatNo = req.user.flatNo;
+  }
+
   const queryStart = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 1));
   const queryEnd = endDate ? new Date(endDate) : new Date();
 
@@ -122,45 +128,49 @@ export const getVisitsOnFilter = asyncHandler(async (req, res) => {
 
 export const sendEmailOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  console.log("EMAIL:", process.env.EMAIL);
-console.log("EMAIL_PASSWORD:", process.env.EMAIL_PASSWORD);
   if (!email) throw new ApiError(400, "Email is required");
 
+  const normalizedEmail = email.trim().toLowerCase();
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-console.log("SEND SID:", req.sessionID);
 
-req.session.emailOtp = otp;
-console.log("OTP STORED:", req.session.emailOtp);
-  req.session.emailOtpExpiry = Date.now() + 5 * 60 * 1000;
-  req.session.emailVerified = false;
+  // Delete existing OTPs for this email address to avoid cluttering
+  await Otp.deleteMany({ email: normalizedEmail });
+  // Save new OTP
+  await Otp.create({ email: normalizedEmail, otp });
 
   try {
-  const info = await transporter.sendMail({
-    from: `"Gate Security" <${process.env.EMAIL}>`,
-    to: email,
-    subject: "Visitor OTP Verification",
-    html: `<h1>${otp}</h1><p>Your OTP for building entry. Valid for 5 minutes.</p>`
-  });
-
-  console.log("Mail sent:", info);
-} catch (err) {
-  console.error("Mail error:", err);
-}
+    await transporter.sendMail({
+      from: `"Gate Security" <${process.env.EMAIL}>`,
+      to: normalizedEmail,
+      subject: "Visitor OTP Verification",
+      html: `<h1>${otp}</h1><p>Your OTP for building entry. Valid for 5 minutes.</p>`
+    });
+  } catch (err) {
+    console.error("Mail error:", err);
+    throw new ApiError(500, "Failed to send verification email");
+  }
 
   res.json({ success: true });
 });
 
 export const verifyEmailOtp = asyncHandler(async (req, res) => {
-  const { otp } = req.body;
- console.log("VERIFY SID:", req.sessionID);
-console.log("OTP FOUND:", req.session.emailOtp);
- if (!otp || String(req.session.emailOtp) !== String(otp)) {
-    throw new ApiError(400, "Invalid OTP");
-}
-  if (Date.now() > req.session.emailOtpExpiry) throw new ApiError(400, "OTP expired");
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP are required");
+  }
 
-  req.session.emailVerified = true;
-  res.json({ success: true, message: "Email verified" });
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedOtp = otp.trim();
+
+  const record = await Otp.findOne({ email: normalizedEmail, otp: normalizedOtp });
+  if (!record) {
+    throw new ApiError(400, "Invalid or expired OTP");
+  }
+
+  // Delete valid OTP after verification
+  await Otp.deleteOne({ _id: record._id });
+
+  res.json({ success: true, message: "Email verified successfully" });
 });
 
 export const getFlatNumbers = asyncHandler(async (req, res) => {
@@ -226,4 +236,43 @@ export const loginAsGuest = asyncHandler(async (req, res) => {
     .cookie("accessToken", response.accessToken, COOKIE_OPTIONS)
     .cookie("refreshToken", response.refreshToken, COOKIE_OPTIONS)
     .json({ user: response.userDetails, accessToken: response.accessToken });
+});
+
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized request: Refresh token is missing");
+  }
+
+  try {
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token: User not found");
+    }
+
+    if (user.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, "Refresh token is expired or already used");
+    }
+
+    const accessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
+
+    user.refreshToken = newRefreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+      .cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS)
+      .json({
+        success: true,
+        accessToken,
+        message: "Access token refreshed successfully"
+      });
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
+  }
 });

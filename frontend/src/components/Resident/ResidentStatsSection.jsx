@@ -43,7 +43,7 @@ const ResidentStatsSection = () => {
         setRecentActivity(activityRes.data);
       }
     } catch (err) {
-      setError("Unable to load resident statistics.");
+      setError(err.response?.data?.message || "Unable to load resident statistics.");
     } finally {
       setIsLoading(false);
     }

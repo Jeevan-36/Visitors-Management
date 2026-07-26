@@ -1,7 +1,8 @@
 import express, { urlencoded } from "express";
 import cookieParser from "cookie-parser";
-import session from "express-session";
 import cors from "cors";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 
 import guardRouter from './routes/guards.routes.js';
 import managerRouter from './routes/manager.routes.js';
@@ -13,13 +14,19 @@ import {
   getRecentVisitorActivity, 
   logoutUser, 
   updateProfile, 
-  updatePassword 
+  updatePassword,
+  refreshAccessToken
 } from "./controllers/user.controller.js";
 import { verifyUser } from "./middlewares/user.middleware.js";
 
 const app = express();
 
 app.set("trust proxy", 1);
+
+// Apply security headers
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 
 app.use(cors({
   origin: [
@@ -33,17 +40,21 @@ app.use(express.json({ limit: "16kb" }));
 app.use(urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-    },
-  })
-);
+// Rate Limiter for sensitive routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 mins
+  message: { success: false, message: "Too many requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/guard/login', authLimiter);
+app.use('/manager/login', authLimiter);
+app.use('/resident/login', authLimiter);
+app.use('/login-guest', authLimiter);
+app.use('/guard/send-email-otp', authLimiter);
+
 app.use('/guard', guardRouter);
 app.use('/manager', managerRouter);
 app.use('/resident', residentRouter);
@@ -52,6 +63,7 @@ app.get('/visitors-summary', getVisitorsSummary);
 app.get('/recent-activity', getRecentVisitorActivity);
 app.get('/flat-numbers', getFlatNumbers);
 app.post('/login-guest', loginAsGuest);
+app.post('/refresh-token', refreshAccessToken);
 
 app.get('/logout', verifyUser, logoutUser);
 app.put('/update-profile', verifyUser, updateProfile);

@@ -41,7 +41,8 @@ export const checkVisitor = asyncHandler(async (req, res) => {
   const { email } = req.body;
   if (!email) throw new ApiError(400, "Email is required");
 
-  const visitor = await Visitor.findOne({ email });
+  const normalizedEmail = email.trim().toLowerCase();
+  const visitor = await Visitor.findOne({ email: normalizedEmail });
   res.status(200).json({
     exists: !!visitor,
     message: visitor ? "Existing visitor found" : "New visitor verification required"
@@ -63,9 +64,30 @@ export const markEntry = asyncHandler(async (req, res) => {
   if (!resident) throw new ApiError(404, "Target flat is currently vacant or inactive");
   if (!guard) throw new ApiError(404, "Invalid guard credentials");
 
-  let visitor = await Visitor.findOne({ email });
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPhone = phoneNo.trim();
+
+  let visitor = await Visitor.findOne({ $or: [{ email: normalizedEmail }, { phoneNo: normalizedPhone }] });
   if (!visitor) {
-    visitor = await Visitor.create({ name, phoneNo, email });
+    visitor = await Visitor.create({ name, phoneNo: normalizedPhone, email: normalizedEmail });
+  } else {
+    // Check if updating this visitor would conflict with another existing visitor's email or phone
+    const conflict = await Visitor.findOne({
+      $and: [
+        { _id: { $ne: visitor._id } },
+        { $or: [{ email: normalizedEmail }, { phoneNo: normalizedPhone }] }
+      ]
+    });
+    if (conflict) {
+      throw new ApiError(409, "A visitor with this email or phone number already exists under different details");
+    }
+    // Update existing visitor details if they changed
+    if (visitor.name !== name || visitor.email !== normalizedEmail || visitor.phoneNo !== normalizedPhone) {
+      visitor.name = name;
+      visitor.email = normalizedEmail;
+      visitor.phoneNo = normalizedPhone;
+      await visitor.save();
+    }
   }
 
   const activeVisit = await Visit.findOne({ visitor: visitor._id, status: { $in: ['Pending', 'Approved'] } });

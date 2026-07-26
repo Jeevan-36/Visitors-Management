@@ -42,10 +42,9 @@ export const loginResident = asyncHandler(async (req, res) => {
 });
 
 export const getPendingApprovals = asyncHandler(async (req, res) => {
-  const { flatNo } = req.body;
-  if (!flatNo) throw new ApiError(400, "Flat number is required");
+  const flatNo = req.user.flatNo;
+  if (!flatNo) throw new ApiError(400, "Flat number is not assigned to user");
 
-  
   const pendingVisits = await Visit.find({
     status: "Pending",
     flatNo: flatNo
@@ -98,8 +97,8 @@ export const denyVisitor = asyncHandler(async (req, res) => {
 });
 
 export const getResidentVisitorsCount = asyncHandler(async (req, res) => {
-  const { flatNo } = req.body;
-  if (!flatNo) throw new ApiError(400, "Flat number is required");
+  const flatNo = req.user.flatNo;
+  if (!flatNo) throw new ApiError(400, "Flat number is not assigned to user");
 
   const results = await Visit.aggregate([
     { $match: { flatNo: flatNo } },
@@ -127,8 +126,8 @@ export const getResidentVisitorsCount = asyncHandler(async (req, res) => {
 });
 
 export const getResidentRecentActivity = asyncHandler(async (req, res) => {
-  const { flatNo } = req.body;
-  if (!flatNo) throw new ApiError(400, "Flat number is required");
+  const flatNo = req.user.flatNo;
+  if (!flatNo) throw new ApiError(400, "Flat number is not assigned to user");
 
   const recentActivity = await Visit.find({ flatNo })
     .sort({ createdAt: -1 })

@@ -9,7 +9,9 @@ import { io } from "socket.io-client";
 import LogoutModal from "../LogoutModal";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const socket = io(SOCKET_URL);
+const socket = io(SOCKET_URL, {
+  autoConnect: false,
+});
 
 const GuardDashboard = () => {
   const [visitorNotifications, setVisitorNotifications] = useState(0);
@@ -22,6 +24,12 @@ const GuardDashboard = () => {
   const { name, employeeId } = user;
 
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    socket.auth = { token };
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     socket.emit("join_room", employeeId);
 
     const handleResidentResponse = ({ updatedVisit }) => {

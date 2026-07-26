@@ -97,7 +97,7 @@ const ManageResidents = () => {
         setDisplayedResidents(resDetails.data?.residents || []);
         setFlatList(resFlats.data?.flatNumbers || []);
       } catch (err) {
-        setError("Failed to load resident data");
+        setError(err.response?.data?.message || "Failed to load resident data");
       } finally {
         setIsLoading(false);
       }
